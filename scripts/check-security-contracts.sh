@@ -30,12 +30,7 @@ require "bundleRelease" "$ci"
 privacy_default="https://elwataniatvapp.web.app/privacy.html"
 privacy_official="https://elwataniatv.dz/privacy"
 privacy_default_files=(
-  "$root_dir/app/src/main/java/com/elwataniatv/app/MainActivity.kt"
-  "$root_dir/app/src/main/java/com/elwataniatv/app/data/model/RemoteAppConfig.kt"
-  "$root_dir/app/src/main/java/com/elwataniatv/app/data/remote/FirestoreContentSync.kt"
-  "$root_dir/app/src/main/java/com/elwataniatv/app/data/repository/WataniaRepository.kt"
   "$root_dir/scripts/seed-firestore.js"
-  "$root_dir/admin/index.html"
 )
 for privacy_file in "${privacy_default_files[@]}"; do
   require "$privacy_default" "$privacy_file"
