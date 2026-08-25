@@ -214,7 +214,6 @@ html[dir="rtl"] body{direction:rtl;text-rendering:optimizeLegibility;-webkit-fon
     <button data-tab="help" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📘 المساعدة</button>
     <button data-tab="activity" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📋 النشاط</button>
     <button data-tab="stats" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📊 الإحصائيات</button>
-    <button data-tab="config" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">⚙️ الإعدادات</button>
   </nav>
 
   <!-- Main Workspace -->
@@ -404,7 +403,7 @@ async function hasAdminClaim(user) {
 }
 
 function allowedTabsForRole(role) {
-  if (role === "admin") return ["streams", "breaking", "archive", "epg", "websites", "social", "push", "ads", "live", "help", "activity", "stats", "config"];
+  if (role === "admin") return ["streams", "breaking", "archive", "epg", "websites", "social", "push", "ads", "live", "help", "activity", "stats"];
   if (role === "editor") return ["streams", "archive", "epg", "websites", "social", "help"];
   if (role === "moderator") return ["help"];
   return [];
@@ -566,7 +565,7 @@ function showToast(kind, title, message, duration = 4000) {
 // ─── Keyboard Shortcuts ──────────────────────────────────────────
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey || e.metaKey) {
-    const tabMap = { "1": "streams", "2": "breaking", "3": "archive", "4": "epg", "5": "websites", "6": "social", "7": "push", "8": "stats", "9": "config" };
+    const tabMap = { "1": "streams", "2": "breaking", "3": "archive", "4": "epg", "5": "websites", "6": "social", "7": "push", "8": "stats" };
     const tab = tabMap[e.key];
     if (tab) {
       e.preventDefault();
@@ -2292,7 +2291,6 @@ async function mountStatsPane() {
         <button class="btn-ghost text-xs flex items-center gap-1.5 py-1.5" onclick="exportCollection('streams','قنوات البث')">📥 تصدير البث</button>
         <button class="btn-ghost text-xs flex items-center gap-1.5 py-1.5" onclick="exportCollection('archive','الأرشيف')">📥 تصدير الأرشيف</button>
         <button class="btn-ghost text-xs flex items-center gap-1.5 py-1.5" onclick="exportCollection('feedback','رسائل المشاهدين')">📥 تصدير الرسائل</button>
-        <button class="btn-ghost text-xs flex items-center gap-1.5 py-1.5 !text-amber-400" onclick="document.querySelector('[data-tab=config]')?.click()">⚙️ فتح الإعدادات</button>
       </div>
     </div>
 
