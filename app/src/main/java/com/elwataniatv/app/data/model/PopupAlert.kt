@@ -8,6 +8,6 @@ data class PopupAlert(
     val active: Boolean = false,
     val title: String = "",
     val message: String = "",
-    val buttonText: String = "حسناً، فهمت",
+    val buttonText: String = "",
     val alertType: String = "info" // "info", "warning", "breaking", "event"
 )

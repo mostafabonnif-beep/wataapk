@@ -96,7 +96,7 @@ class MainViewModel @Inject constructor(
         active: Boolean,
         title: String,
         message: String,
-        buttonText: String = "حسناً",
+        buttonText: String = "",
         alertType: String = "info"
     ) = repository.updatePopupAlert(active, title, message, buttonText, alertType)
 

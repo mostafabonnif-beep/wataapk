@@ -208,7 +208,7 @@ class WataniaRepository(private val db: AppDatabase, private val appContext: and
     }
 
     // Administrative Remote Control API Methods
-    fun updatePopupAlert(active: Boolean, title: String, message: String, buttonText: String = "حسناً", alertType: String = "info") {
+    fun updatePopupAlert(active: Boolean, title: String, message: String, buttonText: String = "", alertType: String = "info") {
         val alert = PopupAlert(active, title, message, buttonText, alertType)
         _popupAlert.value = alert
         firebaseSync.updatePopupAlertRemote(alert) { success, error ->
