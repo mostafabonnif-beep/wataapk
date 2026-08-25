@@ -6,6 +6,7 @@ import com.elwataniatv.app.data.local.FavoriteProgram
 import com.elwataniatv.app.data.local.WatchHistoryItem
 import com.elwataniatv.app.data.model.ArchiveProgram
 import com.elwataniatv.app.ui.screens.archive.ALL_CATEGORY
+import com.elwataniatv.app.ui.screens.archive.normalizeArabicSearchText
 import com.elwataniatv.app.data.repository.WataniaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -39,14 +40,17 @@ class ArchiveViewModel @Inject constructor(
         selectedCategory,
         searchQuery
     ) { programs, category, query ->
+        val normalizedQuery = normalizeArabicSearchText(query)
         programs.filter { program ->
             val categoryMatches = category == ALL_CATEGORY || program.category == category
-            val queryMatches = query.isBlank() ||
-                program.title.contains(query, ignoreCase = true) ||
-                program.description.contains(query, ignoreCase = true)
+            val searchableText = normalizeArabicSearchText(
+                "${program.title} ${program.description} ${program.category}"
+            )
+            val queryMatches = normalizedQuery.isBlank() || searchableText.contains(normalizedQuery)
             categoryMatches && queryMatches
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
 
     fun selectCategory(category: String) { _selectedCategory.value = category }
 
