@@ -1,6 +1,7 @@
 package com.elwataniatv.app.ui.screens.archive
 
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -43,9 +44,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
@@ -75,13 +80,30 @@ fun ArchiveProgramCard(
         deriveThumbnailUrl(program.thumbnailUrl, program.youtubeUrl)
     }
     var isImageError by remember(program.id, resolvedThumbnail) { mutableStateOf(false) }
+    var isFocused by remember(program.id) { mutableStateOf(false) }
+    val focusScale by animateFloatAsState(
+        targetValue = if (isFocused) 1.02f else 1f,
+        animationSpec = tween(durationMillis = 140),
+        label = "archive_card_focus_scale"
+    )
     val programDescription = stringResource(R.string.open_program, program.title, program.category)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = focusScale
+                scaleY = focusScale
+            }
             .clip(RoundedCornerShape(16.dp))
-            .background(BrandPanel.copy(alpha = 0.6f))
+            .background(BrandPanel.copy(alpha = if (isFocused) 0.82f else 0.6f))
+            .border(
+                width = if (isFocused) 2.dp else 0.dp,
+                color = if (isFocused) BrandAccent else Color.Transparent,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .onFocusChanged { state: FocusState -> isFocused = state.isFocused }
+            .focusable()
             .clickable { onCardClick() }
             .semantics {
                 contentDescription = programDescription
