@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <!-- Use the clean official logo bitmap; the previous foreground contained a baked checkerboard. -->
+    <foreground android:drawable="@drawable/watania_channel_logo" />
+    <!-- Android 13+ themed icons: monochrome silhouette of the official logo. -->
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

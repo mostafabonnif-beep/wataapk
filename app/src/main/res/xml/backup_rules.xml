@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Legacy (Android 11 and below) Auto Backup rules: the app holds FCM
+     tokens, device installation IDs and locally synced content, so cloud
+     backup is fully disabled to match allowBackup=false. -->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>

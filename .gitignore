@@ -1,0 +1,63 @@
+# ── Android / Gradle ─────────────────────────────────────────────
+.gradle/
+build/
+app/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+.DS_Store
+
+# ── Firebase / Google Play secrets (must never be committed) ─────
+google-services.json
+google-play-key.json
+service-account.json
+GoogleService-Info.plist
+*.jks
+*.keystore
+*-signing-credentials.txt
+*.p12
+*.p8
+*.key
+
+# ── Keystore (signing keys) ──────────────────────────────────────
+keystore/
+
+# ── Env ──────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Logs ─────────────────────────────────────────────────────────
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# ── Test artifacts ───────────────────────────────────────────────
+coverage/
+.kotlin/
+
+# Generated Firebase Hosting allowlist output
+admin/hosting-dist/
+
+# Node
+node_modules/
+
+# Public distribution APK (intentionally tracked; contains no secrets)
+!assets/downloads/
+!assets/downloads/Elwataniatv-v8.0.0-signed-release.apk
+# Generated public Firebase Web config (injected at Hosting build time)
+admin/firebase-config.js
+
+# Firebase CLI local cache
+.firebase/

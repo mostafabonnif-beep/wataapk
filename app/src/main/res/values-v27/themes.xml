@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- API 27+ additions to the dark launch theme: force light-on-dark
+         system bar icons so the navy background never shows dark glyphs. -->
+    <style name="Theme.ElwataniaTV" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

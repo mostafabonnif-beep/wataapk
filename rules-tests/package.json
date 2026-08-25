@@ -1,0 +1,17 @@
+{
+  "name": "elwataniatv-firestore-rules-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Firestore security rules tests for الوطنية TV",
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-elwataniatv-rules \"node --test test/rules.test.js\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "3.0.4",
+    "firebase": "10.14.1",
+    "firebase-tools": "13.35.1"
+  }
+}

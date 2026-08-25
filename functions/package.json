@@ -1,0 +1,25 @@
+{
+  "name": "elwataniatv-functions",
+  "description": "Cloud Functions for the الوطنية TV Firestore backend",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs":   "firebase functions:log",
+    "test":   "node --test"
+  },
+  "dependencies": {
+    "expo-server-sdk":   "^3.10.0",
+    "firebase-admin":     "^12.1.0",
+    "firebase-functions": "^5.0.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  }
+}

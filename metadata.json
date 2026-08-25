@@ -1,0 +1,6 @@
+{
+  "name": "الوطنية TV",
+  "description": "التطبيق الرسمي لقناة الوطنية TV الجزائرية - بث مباشر، أرشيف برامج، أخبار عاجلة، ومواقع إخبارية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

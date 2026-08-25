@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Firestore rules test dependencies
+        run: npm ci --prefix rules-tests
+
+      - name: Run Firestore rules tests in emulator
+        run: npm test --prefix rules-tests
+
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Run Functions unit tests
+        run: npm test --prefix functions
+
+      - name: Build Firebase Hosting allowlist
+        run: node scripts/build-hosting.js
+
+      - name: Verify Firebase Hosting allowlist
+        shell: bash
+        run: |
+          set -euo pipefail
+          dist="admin/hosting-dist"
+          test -f "$dist/admin/index.html"
+          test -f "$dist/privacy.html"
+          test -d "$dist/assets"
+          if find "$dist" -type f \
+              ! -path "$dist/admin/index.html" \
+              ! -path "$dist/privacy.html" \
+              ! -path "$dist/assets/*" \
+              -print -quit | grep -q .; then
+            echo "Unexpected file found in Firebase Hosting output" >&2
+            exit 1
+          fi
+          diff -qr assets "$dist/assets"
+
+      - name: Check security contracts
+        run: bash scripts/check-security-contracts.sh
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Create google-services.json from secret
+        run: |
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+  
+          fi
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Run unit tests
+        run: ./gradlew test --no-daemon
+
+      - name: Lint
+        run: ./gradlew lint --no-daemon
+
+      - name: Compile Compose instrumentation tests
+        run: ./gradlew :app:assembleDebugAndroidTest --no-daemon
+
+      # Release signing is opt-in. A production bundle also requires the
+      # Firebase production config; without both protected inputs this job
+      # deliberately skips the bundle task instead of producing a misleading artifact.
+      - name: Release bundle check (conditional)
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ] && [ -n "$RELEASE_STORE_PASSWORD" ] && \
+             [ -n "$RELEASE_KEY_ALIAS" ] && [ -n "$RELEASE_KEY_PASSWORD" ] && \
+             [ -s "app/google-services.json" ]; then
+            export RELEASE_STORE_FILE="$RUNNER_TEMP/release.keystore"
+            printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RELEASE_STORE_FILE"
+            ./gradlew bundleRelease --no-daemon
+            rm -f "$RELEASE_STORE_FILE"
+          else
+            echo "Skipping bundleRelease: protected signing inputs and/or GOOGLE_SERVICES_JSON are not configured."
+          fi
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7

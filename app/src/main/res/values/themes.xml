@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark launch theme: matches the in-app navy background so cold starts
+         never flash white. The Compose theme takes over right after the
+         splash (installSplashScreen) finishes. -->
+    <style name="Theme.ElwataniaTV" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/brand_bg</item>
+        <item name="android:navigationBarColor">@color/brand_bg</item>
+        <item name="android:windowBackground">@color/brand_bg</item>
+    </style>
+</resources>

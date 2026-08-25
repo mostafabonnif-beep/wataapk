@@ -1,0 +1,328 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+  // ── helpers ──────────────────────────────────────────────────
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function hasAppCheck() {
+    return request.app != null;
+  }
+
+  // Admin is determined by a custom claim set on the Firebase Auth user.
+  // The claim is set via scripts/set-admin-claim.js (firebase-admin SDK).
+  // No "isAdmin = signedIn()" — anonymous mobile users are NOT admins.
+  function isAdmin() {
+    return isSignedIn()
+      && (request.auth.token.admin == true || request.auth.token.role == 'admin');
+  }
+
+  function isEditor() {
+    return isAdmin() || (isSignedIn() && request.auth.token.role == 'editor');
+  }
+
+  function isModerator() {
+    return isAdmin() || (isSignedIn() && request.auth.token.role == 'moderator');
+  }
+
+  // ── role matrix ───────────────────────────────────────────────
+  // admin: full access; editor: editorial collections; moderator:
+  // moderation paths only. Legacy admin:true remains fully compatible.
+
+  // ── content collections: editor/admin write, public read ─────
+  // Comment reaction counters are intentionally bounded numeric values.
+  // Creation accepts only known reaction keys, with missing keys treated as
+  // zero and each supplied value constrained to a sane upper bound.
+  function validCommentReactions(reactions) {
+    return reactions.keys().hasOnly(['like', 'love', 'laugh', 'wow', 'sad', 'dislike'])
+      && reactions.get('like', 0) is number
+      && reactions.get('love', 0) is number
+      && reactions.get('laugh', 0) is number
+      && reactions.get('wow', 0) is number
+      && reactions.get('sad', 0) is number
+      && reactions.get('dislike', 0) is number
+      && reactions.get('like', 0) >= 0 && reactions.get('like', 0) <= 100000
+      && reactions.get('love', 0) >= 0 && reactions.get('love', 0) <= 100000
+      && reactions.get('laugh', 0) >= 0 && reactions.get('laugh', 0) <= 100000
+      && reactions.get('wow', 0) >= 0 && reactions.get('wow', 0) <= 100000
+      && reactions.get('sad', 0) >= 0 && reactions.get('sad', 0) <= 100000
+      && reactions.get('dislike', 0) >= 0 && reactions.get('dislike', 0) <= 100000;
+  }
+
+  // ── comment rate-limit helper (rules-only, free tier) ─────────
+  // A comment must update users/{uid}.lastCommentAt in the same atomic
+  // batch. getAfter() sees that companion write; the previous value is
+  // used to enforce the 30-second interval, while a missing previous doc
+  // represents the first comment only when the batch initializes it.
+  function withinCommentInterval() {
+    let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+    return existsAfter(userPath)
+        && getAfter(userPath).data.lastCommentAt == request.time
+        && (!exists(userPath)
+            || !(get(userPath).data.lastCommentAt is timestamp)
+            || request.time >= get(userPath).data.lastCommentAt + duration.value(30, 's'));
+  }
+
+  // Comment timestamps must be server-generated (== request.time).
+  // The app sends FieldValue.serverTimestamp(); any client-supplied
+  // timestamp (backdated or future-dated) is rejected outright.
+  function commentCreatedAtIsServerTimestamp() {
+    return request.resource.data.createdAt == request.time;
+  }
+
+  // Comments may contain at most one link. Spell the HTTP letters
+  // explicitly because portable RE2 case-insensitive flags are unavailable.
+  function hasTooManyLinks() {
+    return request.resource.data.text.matches('.*[hH][tT][tT][pP].*[hH][tT][tPp].*');
+  }
+
+  match /streams/{docId} {
+    allow read: if true;
+    allow write: if isEditor();
+  }
+
+  match /archive/{docId} {
+    allow read: if true;
+    allow write: if isEditor();
+  }
+
+  match /websites/{docId} {
+    allow read: if true;
+    allow write: if isEditor();
+  }
+
+  match /social/{docId} {
+    allow read: if true;
+    allow write: if isEditor();
+  }
+
+  match /epg/{docId} {
+    allow read: if true;
+    allow write: if isEditor();
+  }
+
+  match /config/{docId} {
+    allow read: if true;
+    allow write: if isAdmin();
+  }
+
+  match /ad_banners/{docId} {
+    allow read: if true;
+    allow write: if isAdmin();
+  }
+
+  match /satellite_frequencies/{docId} {
+    allow read: if true;
+    allow write: if isAdmin();
+  }
+
+  // ── live reactions: persistent viewer counters ───────────────
+  // live/reactions → { 👍: n, ❤️: n, 😮: n, ⚽: n, 🇩🇿: n }
+  // The voter marker path is keyed by Firebase Auth UID. Public aggregate
+  // writes and marker writes remain closed until a trusted server-side
+  // aggregator is deployed.
+  match /live/reactions {
+    allow read: if true;
+    // Client-side aggregate updates are intentionally disabled: Firestore
+    // rules cannot safely prove that a counter change and a voter marker were
+    // produced by the same trusted operation. Publish a server-side aggregator
+    // before reopening public writes.
+    allow write: if isAdmin();
+  }
+
+  match /live/reactions/user_reactions/{userUid} {
+    allow read: if isSignedIn() && userUid == request.auth.uid;
+    allow create, update, delete: if isAdmin();
+  }
+
+  // ── likes: aggregate counters per program ────────────────────
+  // One doc per programId: { likes, dislikes, views }. Public writes are
+  // disabled until a per-user voter ledger and trusted aggregator exist.
+  match /likes/{programId} {
+    // Aggregate likes have no per-user voter ledger in the current client.
+    // Keep reads public, but reject client writes until that ledger exists.
+    allow read: if true;
+    allow write: if isAdmin();
+  }
+
+  // ── devices: real viewer telemetry (heartbeat) ──────────────
+  // Top-level collection (a Firestore document path needs an even number
+  // One doc per Firebase Auth UID: { lastSeen, updatedAt, userUid,
+  // installationId, appVersion, platform }. The app writes a heartbeat every
+  // 5 minutes. The admin panel derives its viewer count and version activity
+  // from this collection; public app
+  // clients do not read the aggregate.
+  match /devices/{userUid} {
+    allow read: if isAdmin();
+    allow create: if isSignedIn()
+      && hasAppCheck()
+      && request.resource.data.keys().hasOnly(['lastSeen', 'updatedAt', 'userUid', 'installationId', 'appVersion', 'platform'])
+      && request.resource.data.lastSeen is timestamp
+      && request.resource.data.updatedAt is timestamp
+      && userUid == request.auth.uid
+      && request.resource.data.userUid == request.auth.uid
+      && request.resource.data.installationId is string
+      && request.resource.data.installationId.size() >= 8
+      && request.resource.data.installationId.size() <= 64
+      && (!('appVersion' in request.resource.data)
+          || (request.resource.data.appVersion is string && request.resource.data.appVersion.size() <= 32))
+      && (!('platform' in request.resource.data)
+          || (request.resource.data.platform is string && request.resource.data.platform == 'android'));
+    allow update: if isSignedIn()
+      && hasAppCheck()
+      && request.resource.data.keys().hasOnly(['lastSeen', 'updatedAt', 'userUid', 'installationId', 'appVersion', 'platform'])
+      && request.resource.data.lastSeen is timestamp
+      && request.resource.data.updatedAt is timestamp
+      && userUid == request.auth.uid
+      && request.resource.data.userUid == request.auth.uid
+      && request.resource.data.installationId is string
+      && request.resource.data.installationId.size() >= 8
+      && request.resource.data.installationId.size() <= 64
+      && (!('appVersion' in request.resource.data)
+          || (request.resource.data.appVersion is string && request.resource.data.appVersion.size() <= 32))
+      && (!('platform' in request.resource.data)
+          || (request.resource.data.platform is string && request.resource.data.platform == 'android'))
+      && (!resource.data.keys().hasAny(['userUid']) || resource.data.userUid == request.auth.uid)
+      && request.time.toMillis() - resource.data.lastSeen.toMillis() >= 300000
+      && userUid == request.auth.uid;
+    allow delete: if isAdmin();
+  }
+
+  // Privacy-preserving aggregate only. Never expose devices to public clients.
+  // The dashboard or a scheduled backend job maintains this document.
+  match /stats/active_viewers {
+    allow read: if true;
+    allow write: if isAdmin();
+  }
+
+  // ── notifications: public read, admin write ────────────────
+  // الإشعارات داخل التطبيق (banners) تُعرض لكل المستخدمين — القراءة
+  // عامة، والكتابة (الإرسال من لوحة التحكم) للمسؤول فقط.
+  match /notifications/{docId} {
+    allow read: if true;
+    allow write: if isAdmin();
+  }
+
+  // ── feedback: signed-in users create, admin reads ────────────
+  // Payload shape mirrors the client submitFeedback() exactly
+  // (hasOnly — no smuggled fields). Auth is required so abuse is
+  // rate-limitable per uid; the client also rate-limits locally.
+  match /feedback/{docId} {
+    allow create: if isSignedIn()
+      && hasAppCheck()
+      && request.resource.data.message is string
+      && request.resource.data.message.size() > 0
+      && request.resource.data.message.size() <= 500
+      && request.resource.data.type in ['bug', 'feature', 'content', 'other']
+      && request.resource.data.email is string
+      && request.resource.data.email.size() <= 254
+      && request.resource.data.deviceId is string
+      && request.resource.data.deviceId.size() >= 8
+      && request.resource.data.deviceId.size() <= 64
+      && request.resource.data.userUid == request.auth.uid
+      && request.resource.data.createdAt == request.time
+      && request.resource.data.keys().hasOnly(['type', 'message', 'email', 'deviceId', 'userUid', 'appVersion', 'platform', 'createdAt']);
+    allow read, update, delete: if isAdmin();
+  }
+
+  // ── push_tokens: signed-in user registers their own device ─────
+  // The document key is the Firebase Auth UID. The installation ID and
+  // FCM token remain fields, so one authenticated user cannot overwrite
+  // another user's registration by guessing a device identifier.
+  match /push_tokens/{userUid} {
+    allow create, update: if isSignedIn()
+      && hasAppCheck()
+      && userUid == request.auth.uid
+      && request.resource.data.userUid == request.auth.uid
+      && request.resource.data.deviceId is string
+      && request.resource.data.deviceId.size() >= 8
+      && request.resource.data.deviceId.size() <= 64
+      && request.resource.data.keys().hasOnly(['deviceId', 'userUid', 'token', 'platform', 'savedAt', 'categories'])
+      && (!request.resource.data.keys().hasAny(['categories'])
+          || (request.resource.data.categories is list && request.resource.data.categories.size() <= 16))
+      && request.resource.data.token is string
+      && request.resource.data.token.size() >= 20
+      && request.resource.data.token.size() <= 4096
+      && request.resource.data.platform == 'android'
+      && request.resource.data.savedAt is timestamp;
+    allow read, delete: if isAdmin();
+  }
+
+  // ── programs/{id}/comments: validated writes ──────────────
+  // Mobile users can read and post comments. Rules enforce payload
+  // shape, text length, timestamp freshness, a per-user posting interval
+  // (users/{uid}.lastCommentAt), and a one-link limit. The app also runs
+  // a client-side ProfanityFilter for instant feedback — it is
+  // bypassable, so these rules are the authoritative gate on the free
+  // tier (no Cloud Function needed).
+  match /programs/{programId} {
+    allow read: if true;
+    allow write: if isAdmin();
+
+    match /comments/{commentId} {
+      allow read: if true;
+      // hasOnly: the exact payload the client sends via postComment()
+      // The app signs users in anonymously before enabling writes.
+      // Prevents unauthenticated pre-seeding of a `moderation: {ok: true}` pass.
+      allow create: if isSignedIn()
+        && hasAppCheck()
+        && request.resource.data.author is string
+        && request.resource.data.author.size() > 0
+        && request.resource.data.author.size() <= 50
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500
+        && request.resource.data.deviceId is string
+        && request.resource.data.deviceId.size() >= 8
+        && request.resource.data.deviceId.size() <= 64
+        && request.resource.data.userUid == request.auth.uid
+        && request.resource.data.parentId is string
+        && request.resource.data.parentId.size() <= 128
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.reactions is map
+        && validCommentReactions(request.resource.data.reactions)
+        && request.resource.data.keys().hasOnly(['author', 'text', 'deviceId', 'userUid', 'parentId', 'createdAt', 'reactions'])
+        && commentCreatedAtIsServerTimestamp()
+        && withinCommentInterval()
+        && !hasTooManyLinks();
+      // Updates remain closed; moderators and admins may remove reported comments.
+      allow delete: if isModerator();
+
+      // Per-comment reactions: one doc per (commentId, userUid), reserved for the server/admin aggregator.
+      match /reactions/{userUid} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+      }
+    }
+  }
+
+  // ── users/{uid}/preferences: owner only ─────────────────────
+  match /users/{uid} {
+    // Owner-only, plus: if the write carries lastCommentAt it must be a
+    // server timestamp (== request.time) so the comment rate-limit gate
+    // cannot be bypassed by backdating the field.
+    allow read, write: if isSignedIn() && hasAppCheck() && request.auth.uid == uid
+      && (!('lastCommentAt' in request.resource.data)
+          || request.resource.data.lastCommentAt == request.time);
+
+    match /preferences/{prefId} {
+      allow read, write: if isSignedIn() && hasAppCheck() && request.auth.uid == uid;
+    }
+  }
+
+  // ── activity_log: admin audit trail (web panel) ─────────────
+  // لوحة تحكم الويب تسجّل هنا إجراءات المسؤول (خبر عاجل، تحديث إعدادات…)
+  // وتقرأها في تبويب "النشاط". admin فقط — كتابة وقراءة.
+  match /activity_log/{docId} {
+    allow read, write: if isAdmin();
+  }
+
+  // ── catch-all: deny ─────────────────────────────────────────
+  match /{document=**} {
+    allow read, write: if false;
+  }
+  }
+}
