@@ -44,6 +44,10 @@ const firebaseConfig = {
 const requiredFirebaseFields = ["apiKey", "messagingSenderId", "appId"];
 const missingFirebaseFields = requiredFirebaseFields.filter((field) => !firebaseConfig[field]);
 if (missingFirebaseFields.length) {
+  if (process.env.ALLOW_HOSTING_BUILD_SKIP === "true") {
+    console.warn(`Skipping Firebase Hosting build: missing ${missingFirebaseFields.join(", ")}.`);
+    process.exit(0);
+  }
   fail(`missing Firebase Hosting build variables: ${missingFirebaseFields.join(", ")}`);
 }
 

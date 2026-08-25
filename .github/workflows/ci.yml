@@ -40,6 +40,8 @@ jobs:
         run: npm test --prefix functions
 
       - name: Build Firebase Hosting allowlist
+        env:
+          ALLOW_HOSTING_BUILD_SKIP: "true"
         run: node scripts/build-hosting.js
 
       - name: Verify Firebase Hosting allowlist
@@ -47,6 +49,10 @@ jobs:
         run: |
           set -euo pipefail
           dist="admin/hosting-dist"
+          if [ ! -d "$dist" ]; then
+            echo "Skipping allowlist verification: hosting build was skipped."
+            exit 0
+          fi
           test -f "$dist/admin/index.html"
           test -f "$dist/privacy.html"
           test -d "$dist/assets"

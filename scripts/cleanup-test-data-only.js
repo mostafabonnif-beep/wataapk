@@ -1,95 +1,94 @@
 #!/usr/bin/env node
-/**
- * scripts/cleanup-test-data-only.js
+/*
+ * Remove only the known test records listed in ADMIN_HANDOFF_REPORT_AR.md.
+ * This script is intentionally opt-in: it refuses to run unless
+ * CONFIRM_TEST_DATA_CLEANUP=YES is provided.
  *
- * يحذف ONLY بيانات الاختبار التجريبية من Firestore:
- *   - برامج EPG التجريبية («oussama» و«200»)
- *   - الإشعارات التجريبية (test: true أو category: test)
- *   - تعطيل الخبر العاجل التجريبي (config/breaking)
+ * Prerequisite:
+ *   npm install --prefix functions
+ *   CONFIRM_TEST_DATA_CLEANUP=YES node scripts/cleanup-test-data-only.js
  *
- * لا يزرع ولا يعدّل أي بيانات أخرى — تنظيف فقط.
- *
- * الاستعمال:
- *   1. ضع service-account.json في هذا المجلد (من Firebase Console →
- *      Project Settings → Service Accounts → Generate new private key)
- *   2. node scripts/cleanup-test-data-only.js
+ * Credentials are read from GOOGLE_APPLICATION_CREDENTIALS, or from the
+ * ignored scripts/service-account.json path. Never commit either file.
  */
-const path = require("path");
 const fs = require("fs");
+const path = require("path");
 
-async function main() {
-  const keyPath = path.resolve(__dirname, "service-account.json");
-  if (!fs.existsSync(keyPath)) {
-    console.error("❌ service-account.json غير موجود في:", keyPath);
-    console.error("   نزّله من Firebase Console → Project Settings → Service Accounts");
-    process.exit(1);
-  }
+const rootDir = path.resolve(__dirname, "..");
+const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
+  || path.join(__dirname, "service-account.json");
 
-  let admin;
-  try {
-    admin = require("firebase-admin");
-  } catch {
-    console.error("❌ firebase-admin غير منصّب. شغّل: npm install firebase-admin");
-    process.exit(1);
-  }
-
-  const { initializeApp, cert, getApps } = require("firebase-admin/app");
-  const { getFirestore } = require("firebase-admin/firestore");
-
-  const serviceAccount = require(keyPath);
-  const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(serviceAccount) });
-  const db = getFirestore(app);
-
-  console.log("🧹 بدء تنظيف بيانات الاختبار...\n");
-
-  // ─── 1. حذف برامج EPG التجريبية ─────────────────────────
-  const epgSnap = await db.collection("epg").get();
-  let epgDeleted = 0;
-  for (const d of epgSnap.docs) {
-    const title = String(d.data().title || "").trim();
-    if (title === "200" || title.toLowerCase() === "oussama") {
-      await d.ref.delete();
-      epgDeleted++;
-      console.log(`  🗑️ حُذف EPG تجريبي: «${title}» (${d.id})`);
-    }
-  }
-  if (epgDeleted === 0) console.log("  ℹ️ لا توجد برامج EPG تجريبية (oussama/200)");
-
-  // ─── 2. حذف الإشعارات التجريبية ──────────────────────────
-  const notifSnap = await db.collection("notifications").get();
-  let notifDeleted = 0;
-  for (const d of notifSnap.docs) {
-    const data = d.data() || {};
-    const textFields = [data.title, data.body, data.message, data.author, data.createdBy]
-      .map((v) => String(v || "").trim().toLowerCase())
-      .filter(Boolean);
-    const isTest = data.test === true || data.category === "test" ||
-      textFields.includes("oussama") || textFields.includes("200");
-    if (isTest) {
-      await d.ref.delete();
-      notifDeleted++;
-      console.log(`  🗑️ حُذف إشعار تجريبي: ${d.id}`);
-    }
-  }
-  if (notifDeleted === 0) console.log("  ℹ️ لا توجد إشعارات تجريبية");
-
-  // ─── 3. تعطيل الخبر العاجل التجريبي ──────────────────────
-  const brRef = db.doc("config/breaking");
-  const brSnap = await brRef.get();
-  if (brSnap.exists) {
-    const text = String(brSnap.data().text || "").trim().toLowerCase();
-    if (text === "oussama" || text === "200" || text === "") {
-      await brRef.update({ enabled: false, text: "" });
-      console.log("  🚫 عُطّل الخبر العاجل التجريبي (config/breaking)");
-    } else {
-      console.log("  ℹ️ الخبر العاجل الحالي ليس تجريبياً — لم يُمَس");
-    }
-  }
-
-  console.log("\n✅ انتهى التنظيف بنجاح.");
+if (process.env.CONFIRM_TEST_DATA_CLEANUP !== "YES") {
+  console.error("Refusing to modify Firestore.");
+  console.error("Set CONFIRM_TEST_DATA_CLEANUP=YES after reviewing the exact document IDs.");
+  process.exit(1);
 }
 
-main().catch((err) => {
-  console.error("❌ خطأ:", err.message);
+if (!fs.existsSync(serviceAccountPath)) {
+  console.error(`Service account file not found: ${serviceAccountPath}`);
+  console.error("Set GOOGLE_APPLICATION_CREDENTIALS to a protected Firebase service-account JSON file.");
   process.exit(1);
-});
+}
+
+let admin;
+try {
+  admin = require("firebase-admin");
+} catch (firstError) {
+  try {
+    admin = require(path.join(rootDir, "functions", "node_modules", "firebase-admin"));
+  } catch (secondError) {
+    console.error("firebase-admin is not installed. Run: npm install --prefix functions");
+    process.exit(1);
+  }
+}
+
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
+const app = admin.apps.length
+  ? admin.app()
+  : admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+const db = admin.firestore(app);
+
+const epgTestDocuments = [
+  "epg/epg_7",
+  "epg/wm6BWBmK1KxZjW38DOOL",
+];
+const notificationTestDocument = "notifications/RdQSsaqf8jNPEtOKKUny";
+const breakingDocument = "config/breaking";
+
+async function deleteIfPresent(documentPath) {
+  const reference = db.doc(documentPath);
+  const snapshot = await reference.get();
+  if (!snapshot.exists) {
+    console.log(`SKIP missing: ${documentPath}`);
+    return;
+  }
+  await reference.delete();
+  console.log(`DELETED: ${documentPath}`);
+}
+
+async function disableBreakingNews() {
+  const reference = db.doc(breakingDocument);
+  const snapshot = await reference.get();
+  if (!snapshot.exists) {
+    console.log(`SKIP missing: ${breakingDocument}`);
+    return;
+  }
+  await reference.set({ enabled: false, text: "" }, { merge: true });
+  console.log(`DISABLED and cleared text: ${breakingDocument}`);
+}
+
+async function main() {
+  for (const documentPath of epgTestDocuments) await deleteIfPresent(documentPath);
+  await disableBreakingNews();
+  await deleteIfPresent(notificationTestDocument);
+  console.log("Test-data cleanup completed. No other documents were targeted.");
+}
+
+main()
+  .catch((error) => {
+    console.error("Cleanup failed:", error.message);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    if (admin.apps.length) await app.delete();
+  });
