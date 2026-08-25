@@ -1,8 +1,11 @@
 package com.elwataniatv.app.ui.screens.guide
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +22,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -243,17 +248,35 @@ private fun GuideRow(
     hasReminder: Boolean,
     onClick: () -> Unit
 ) {
+    var isFocused by remember(program.id) { mutableStateOf(false) }
+    val focusScale by animateFloatAsState(
+        targetValue = if (isFocused) 1.015f else 1f,
+        animationSpec = tween(durationMillis = 140),
+        label = "epg_row_focus_scale"
+    )
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = focusScale
+                scaleY = focusScale
+            }
             .clip(RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .clickable(onClick = onClick),
-        color = if (isCurrent) BrandPrimary.copy(alpha = 0.16f) else BrandPanel.copy(alpha = 0.7f),
+        color = if (isCurrent) BrandPrimary.copy(alpha = 0.16f) else BrandPanel.copy(alpha = if (isFocused) 0.82f else 0.7f),
         shape = RoundedCornerShape(14.dp),
-        border = androidx.compose.foundation.BorderStroke(
+                    border = androidx.compose.foundation.BorderStroke(
             width = if (isCurrent) 1.5.dp else 1.dp,
-            color = if (isCurrent) BrandRed.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.06f)
+            color = when {
+                isCurrent -> BrandRed.copy(alpha = 0.9f)
+                isFocused -> BrandAccent.copy(alpha = 0.9f)
+                else -> Color.White.copy(alpha = 0.06f)
+            }
         )
+
     ) {
         Row(
             modifier = Modifier
