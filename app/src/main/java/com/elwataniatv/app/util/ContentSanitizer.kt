@@ -7,11 +7,26 @@ package com.elwataniatv.app.util
  */
 object ContentSanitizer {
     private val separators = Regex("[^\\p{L}\\p{N}]+")
+    private val knownTestValues = setOf(
+        "oussama",
+        "oussamab",
+        "200",
+        "demo",
+        "dummy",
+        "placeholder",
+        "sample",
+        "test",
+        "testing",
+        "تجريبي",
+        "تجربة"
+    )
 
     fun normalized(value: String): String = value.trim().lowercase().replace(separators, "")
 
     fun isKnownTestValue(value: String): Boolean {
-        return normalized(value) in setOf("oussama", "oussamab", "200")
+        val normalizedValue = normalized(value)
+        return normalizedValue in knownTestValues ||
+            knownTestValues.any { marker -> marker.length >= 4 && normalizedValue.contains(marker) }
     }
 
     fun isUsable(value: String): Boolean {

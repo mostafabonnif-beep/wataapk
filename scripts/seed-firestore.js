@@ -8,9 +8,10 @@
  * - config/breaking ← الخبر العاجل
  * - streams ← قنوات البث
  * - archive ← فيديوهات الأرشيف
- * - websites ← المواقع
- * - social ← التواصل الاجتماعي
- * - satellite_frequencies ← ترددات الأقمار الصناعية
+ * - streams/live_main ← رابط بث رسمي يمرر عبر OFFICIAL_STREAM_URL
+ *
+ * لا يزرع السكريبت أي برامج أو مواقع أو إعلانات أو ترددات افتراضية؛
+ * هذه البيانات تحريرية ويجب أن تأتي من لوحة التحكم بعد مراجعتها.
  *
  * استعمال:
  *   1. npm install firebase-admin
@@ -57,9 +58,12 @@ async function main() {
 
   // ─── 1. config/app — إعدادات التطبيق ─────────────────────
   const DEFAULT_PRIVACY_URL = "https://elwataniatvapp.web.app/privacy.html";
-  const DEFAULT_OFFICIAL_STREAM_URL = "https://livesstream.work.gd:5443/WebRTCApp/streams/stream.m3u8";
-  const officialStreamUrl = String(process.env.OFFICIAL_STREAM_URL || DEFAULT_OFFICIAL_STREAM_URL).trim();
-  if (officialStreamUrl && !/^https?:\/\/[^\s]+\.m3u8(?:[?#].*)?$/i.test(officialStreamUrl)) {
+  const officialStreamUrl = String(process.env.OFFICIAL_STREAM_URL || "").trim();
+  if (!officialStreamUrl) {
+    console.error("OFFICIAL_STREAM_URL is required; no fallback stream is created.");
+    return process.exit(1);
+  }
+  if (!/^https?:\/\/[^\s]+\.m3u8(?:[?#].*)?$/i.test(officialStreamUrl)) {
     console.error("OFFICIAL_STREAM_URL must be a valid http(s) HLS .m3u8 URL.");
     return process.exit(1);
   }
@@ -93,7 +97,7 @@ async function main() {
     maintenanceMode:      false,
     maintenanceMessage:   "",
     minVersion:           String(process.env.MIN_VERSION || "8.0.0"),
-    latestVersion:        String(process.env.LATEST_VERSION || "8.1.1"),
+    latestVersion:        String(process.env.LATEST_VERSION || "8.5.0"),
     updateUrl:            "",
     updateMessage:        "",
     enableOnboarding:     true,
@@ -165,199 +169,10 @@ async function main() {
   }, { merge: true });
   console.log(`✅ streams/live_main — تم تثبيت رابط البث الأساسي الرسمي${existingStreams.empty ? "" : " (تحديث الوثيقة الموجودة)"}`);
 
-  // ─── 4. websites — المواقع الإخبارية ─────────────────────
-  const existingWebsites = await db.collection("websites").get();
-  if (existingWebsites.empty) {
-    const websites = [
-      {
-        name: "الوطنية TV",
-        url: "https://www.youtube.com/@ElwataniaTV",
-        description: "القناة الوطنية الجزائرية",
-        emoji: "📺",
-        color: "#0a7ea4",
-        order: 0,
-        isActive: true,
-      },
-      {
-        name: "الجزائر الجديدة",
-        url: "https://www.eldjazaireldjadida.dz/",
-        description: "موقع إخباري جزائري شامل",
-        emoji: "📰",
-        color: "#16a34a",
-        order: 1,
-        isActive: true,
-      },
-      {
-        name: "الحدث",
-        url: "https://elhadath-dz.com/",
-        description: "أخبار وتحليلات سياسية",
-        emoji: "⚡",
-        color: "#dc2626",
-        order: 2,
-        isActive: true,
-      },
-    ];
-    for (const w of websites) {
-      await db.collection("websites").add(w);
-    }
-    console.log(`✅ websites — ${websites.length} موقع إخباري`);
-  } else {
-    console.log(`⏭️ websites — موجودة قبل (${existingWebsites.size})`);
-  }
-
-  // ─── 5. social — منصات التواصل الاجتماعي ─────────────────
-  const existingSocial = await db.collection("social").get();
-  if (existingSocial.empty) {
-    const socials = [
-      {
-        platform: "Facebook",
-        name: "الوطنية TV",
-        url: "https://www.facebook.com/elwataniatvweb",
-        description: "تابع آخر الأخبار والبرامج",
-        emoji: "📺",
-        color: "#1877F2",
-        order: 0,
-        isActive: true,
-      },
-      {
-        platform: "Facebook",
-        name: "الوطنية سبورت",
-        url: "https://www.facebook.com/ElwataniaSport",
-        description: "أخبار الرياضة الجزائرية",
-        emoji: "⚽",
-        color: "#1877F2",
-        order: 1,
-        isActive: true,
-      },
-      {
-        platform: "Facebook",
-        name: "الجزائر الجديدة",
-        url: "https://www.facebook.com/Eldjazair.Eldjadida.News",
-        description: "آخر الأخبار والتحليلات",
-        emoji: "📰",
-        color: "#1877F2",
-        order: 2,
-        isActive: true,
-      },
-    ];
-    for (const s of socials) {
-      await db.collection("social").add(s);
-    }
-    console.log(`✅ social — ${socials.length} منصة تواصل`);
-  } else {
-    console.log(`⏭️ social — موجودة قبل (${existingSocial.size})`);
-  }
-
-  // ─── 6. epg — جدول برامج اليوم ───────────────────────────
-  const existingEpg = await db.collection("epg").get();
-  if (existingEpg.empty) {
-    const schedule = [
-      { time: "06:00", title: "نشرة أخبار الصباح" },
-      { time: "09:00", title: "برنامج صباح الخير" },
-      { time: "12:00", title: "نشرة أخبار الظهيرة" },
-      { time: "15:00", title: "برنامج رياضي" },
-      { time: "18:00", title: "برنامج ثقافي" },
-      { time: "20:00", title: "نشرة أخبار المساء" },
-      { time: "22:00", title: "برنامج منوعات" },
-    ];
-    await db.collection("epg").add({
-      title: "جدول اليوم",
-      startTime: "06:00",
-      category: "برامج يومية",
-      duration: "يوم كامل",
-      description: "البرنامج اليومي لقناة الوطنية TV",
-      day: new Date().toLocaleDateString("ar-DZ", { weekday: "long" }),
-      programs: schedule,
-    });
-    console.log(`✅ epg — جدول اليوم (${schedule.length} برنامج)`);
-  } else {
-    console.log(`⏭️ epg — موجودة قبل (${existingEpg.size})`);
-  }
-
-  // ─── 7. ad_banners — رعاة البث ───────────────────────────
-  const existingAds = await db.collection("ad_banners").get();
-  if (existingAds.empty) {
-    const banners = [
-      { title: "تابعوا البث المباشر HD لقناة الوطنية TV", imageUrl: "", targetUrl: "https://elwataniatv.dz", order: 1, isEnabled: true },
-      { title: "برنامج حوار الساعة — كل أسبوع", imageUrl: "", targetUrl: "https://www.youtube.com/@ElwataniaTV", order: 2, isEnabled: true },
-    ];
-    for (const b of banners) {
-      await db.collection("ad_banners").add(b);
-    }
-    console.log(`✅ ad_banners — ${banners.length} بنر رعاية`);
-  } else {
-    console.log(`⏭️ ad_banners — موجودة قبل (${existingAds.size})`);
-  }
-
-  // ─── 8. satellite_frequencies — ترددات الأقمار الصناعية ────
-  const satelliteFrequencies = [
-    {
-      id: "sat_nilesat",
-      satelliteName: "نايل سات",
-      orbitalPosition: "Nilesat 7.0°W",
-      frequencyMhz: 10922,
-      polarization: "V (عمودي)",
-      symbolRate: 27500,
-      fec: "7/8",
-      notes: "التردد الرسمي المعلن للقناة",
-      isActive: true,
-      order: 1,
-    },
-    {
-      id: "sat_badr",
-      satelliteName: "عرب سات / بدر",
-      orbitalPosition: "Badr 26.0°E",
-      frequencyMhz: 12303,
-      polarization: "H (أفقي)",
-      symbolRate: 27500,
-      fec: "5/6",
-      notes: "التردد الرسمي المعلن للقناة",
-      isActive: true,
-      order: 2,
-    },
-  ];
-  for (const frequency of satelliteFrequencies) {
-    const { id, ...data } = frequency;
-    await db.collection("satellite_frequencies").doc(id).set(data, { merge: true });
-  }
-  console.log(`✅ satellite_frequencies — ${satelliteFrequencies.length} ترددات قابلة للتحكم من اللوحة`);
-
-  // ─── 9. archive — أرشيف الفيديوهات ───────────────────────
-  const existingArchive = await db.collection("archive").get();
-  if (existingArchive.empty) {
-    const archives = [
-      {
-        title: "نشرة الأخبار الرئيسية",
-        description: "نشرة الأخبار الرئيسية — متابعة كاملة لأهم الأحداث الوطنية والدولية",
-        category: "أخبار",
-        youtubeUrl: "https://www.youtube.com/@ElwataniaTV",
-        date: new Date().toISOString().split("T")[0],
-        duration: "30 دقيقة",
-      },
-      {
-        title: "ملعب الجزائر",
-        description: "أبرز الأحداث الرياضية والتحليلات الفنية للمباريات",
-        category: "رياضة",
-        youtubeUrl: "https://www.youtube.com/@ElwataniaSport",
-        date: new Date().toISOString().split("T")[0],
-        duration: "45 دقيقة",
-      },
-      {
-        title: "الجزائر الجديدة",
-        description: "برنامج يستعرض مسيرة التطوير والإنجازات الوطنية",
-        category: "وثائقي",
-        youtubeUrl: "https://www.youtube.com/@eldjazaireldjadida",
-        date: new Date().toISOString().split("T")[0],
-        duration: "60 دقيقة",
-      },
-    ];
-    for (const a of archives) {
-      await db.collection("archive").add(a);
-    }
-    console.log(`✅ archive — ${archives.length} فيديو في الأرشيف`);
-  } else {
-    console.log(`⏭️ archive — موجودة قبل (${existingArchive.size})`);
-  }
+  // ─── 4. المحتوى التحريري ─────────────────────────────────
+  // لا ننشئ سجلات مصطنعة. يضيف المسؤول البرامج والمواقع والإعلانات
+  // والترددات من لوحة التحكم بعد مراجعة الروابط والمعلومات الرسمية.
+  console.log("⏭️ المحتوى التحريري — لم تُنشأ بيانات افتراضية؛ المصدر هو Firestore/لوحة التحكم.");
 
   console.log(
     cleanupTestData

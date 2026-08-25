@@ -30,11 +30,11 @@
 
 ## 📦 آخر إصدار قابل للتجربة
 
-الإصدار الحالي من المصدر هو **v8.2.0 / versionCode 33**. رابط التحميل العام هو [`elwataniatvapp.web.app/download`](https://elwataniatvapp.web.app/download)، بينما يبقى مستودع GitHub خاصاً. نجح `compileDebugKotlin` و`testDebugUnitTest` و`lintDebug` و`assembleDebug` و`assembleRelease`. APK الموقّع يُسلَّم عبر GitHub Release بعد التحقق من توقيع APK ببروتوكول APK Signature Scheme v2. أُعيدت محاولة تشغيل AVD مع `-no-accel` و`-wipe-data`؛ وصل المحاكي إلى خدمات جزئية، لكنه فشل في تثبيت APK لأن Android لم يُكمل system providers وظهر NPE/IllegalStateException داخل PackageManager. لذلك يجب اعتماد اختبار جهاز Android حقيقي أو محاكي KVM قبل التسليم المؤسسي النهائي.
+الإصدار الحالي من المصدر هو **v8.5.0 / versionCode 36**. رابط التحميل العام هو [`elwataniatvapp.web.app/download`](https://elwataniatvapp.web.app/download)، بينما تبقى الأسرار وملفات التوقيع خارج المستودع. نجحت مهام `compileDebugKotlin` و`testDebugUnitTest` و`lintDebug` و`assembleDebug`، كما نجح CI في GitHub Actions. رابط البث لا يُضمّن داخل التطبيق؛ يقرأ التطبيق المصدر الرسمي المنشور في Firestore. يجب اعتماد اختبار جهاز Android حقيقي أو محاكي KVM قبل التسليم المؤسسي النهائي.
 
 ## 🌟 الميزات الرئيسية
 
-- **البث المباشر (Live Stream)**: مشغل ExoPlayer/Media3 لتدفق HLS الرسمي الأساسي. الرابط المعتمد هو `https://livesstream.work.gd:5443/WebRTCApp/streams/stream.m3u8`. لا يوجد رابط احتياطي خارجي معتمد؛ يستخدم التطبيق فقط مصادر إضافية رسمية تُضاف إلى Firestore.
+- **البث المباشر (Live Stream)**: مشغل ExoPlayer/Media3 لتدفق HLS الرسمي الذي يحدده مسؤول القناة في Firestore. لا ينشئ التطبيق رابطاً احتياطياً أو مصدراً وهمياً عند غياب الرابط؛ تضاف المصادر الرسمية الإضافية من لوحة التحكم فقط.
 - **الأخبار العاجلة (Breaking News)**: شريط تفاعلي يفتح فيديو YouTube الذي يحدده المسؤول، أو أحدث فيديو من الأرشيف عند غياب الرابط.
 - 📅 **جدول البرامج (EPG)**: عرض تفاعلي لجدول بث برامج اليوم مع إمكانية تفعيل التنبيهات.
 - **أرشيف البرامج (Archive Catalog)**: بحث وفلترة حسب التصنيف مع مشغل YouTube مدمج، وتحكم المسؤول في نشر كل حصة أو نشرة وظهورها في الشاشة الرئيسية.

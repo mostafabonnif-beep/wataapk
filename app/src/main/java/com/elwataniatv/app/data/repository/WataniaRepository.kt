@@ -687,18 +687,8 @@ class WataniaRepository(private val db: AppDatabase, private val appContext: and
     }
 
     companion object {
-        // Official primary stream supplied by the channel operator.
-        // Fallback remains limited to additional active streams explicitly configured in Firestore.
-        val DEFAULT_STREAMS: List<RemoteStream> = listOf(
-            RemoteStream(
-                id = "live_main",
-                title = "",
-                url = "https://livesstream.work.gd:5443/WebRTCApp/streams/stream.m3u8",
-                type = "m3u8",
-                isActive = true,
-                order = 0,
-            )
-        )
+        // No stream is embedded locally. Active sources must be supplied by the channel operator through Firestore.
+        val DEFAULT_STREAMS: List<RemoteStream> = emptyList()
 
         val DEFAULT_BREAKING = BreakingNews(
             enabled = false,

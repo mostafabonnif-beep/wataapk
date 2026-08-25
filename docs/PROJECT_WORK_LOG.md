@@ -14,7 +14,7 @@ This file is the durable handoff for the next maintainer or assistant. It record
 - PR 86 merged at `6031e05ebec034e39fb346a541a2c446b457bd96`: added this project work log and archived the superseded pre-remediation audit.
 - PR 87 merged at `56ecec3a28c3a23c7eb6be223796b8621454f49e`: added `docs/RELEASE_CHECKLIST.md` with only the remaining owner-gated release requirements.
 - CI #435 on merged main passed after PRs 83-85. PR 86 CI #436 passed. PR 87 CI #438 passed. Post-PR-87 main CI #439 was running at the time of this update and must be checked live before being called successful.
-- The only approved primary stream is `https://livesstream.work.gd:5443/WebRTCApp/streams/stream.m3u8`. No YouTube or invented URL is an approved automatic backup.
+- No stream URL is embedded as an Android fallback. The approved primary stream must be supplied by the channel operator through Firestore; no YouTube or invented URL is used as an automatic backup.
 - The working privacy page is `https://elwataniatv-channel.vercel.app/privacy`. The old `elwataniatv.dz/privacy` route returned 404 and was removed from runtime documentation.
 - The admin panel supports YouTube links in two separate places: `social` for public channel/account links, and `streams` with type `youtube` for a YouTube live source.
 

@@ -19,6 +19,13 @@ class ContentSanitizerTest {
     }
 
     @Test
+    fun rejectsGenericDemoAndArabicTestMarkers() {
+        assertFalse(ContentSanitizer.isUsable("برنامج تجريبي للقناة"))
+        assertFalse(ContentSanitizer.isUsable("Demo episode"))
+        assertFalse(ContentSanitizer.isUsable("Placeholder item"))
+    }
+
+    @Test
     fun keepsRealArabicEditorialContent() {
         assertFalse(ContentSanitizer.isKnownTestValue("نشرة الأخبار الوطنية"))
         assertTrue(ContentSanitizer.isUsable("نشرة الأخبار الوطنية"))
