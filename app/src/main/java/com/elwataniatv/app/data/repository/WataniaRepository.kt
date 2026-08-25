@@ -578,8 +578,8 @@ class WataniaRepository(private val db: AppDatabase, private val appContext: and
 
     // ═══════════════════════════════════════════════════════════════
     // 🔥 مزامنة Firestore — البيانات الحية من لوحة التحكم
-    // البيانات الثابتة أعلاه تُستخدم كـ fallback فقط؛ عند توفر
-    // Firestore تُستبدل فوراً بالقيم الحقيقية من اللوحة.
+    // Firestore هو مصدر المحتوى التحريري. لا توجد قنوات أو برامج وهمية
+    // مضمّنة محلياً؛ عند غياب الاتصال تبقى القوائم فارغة حتى وصول البيانات الرسمية.
     // ═══════════════════════════════════════════════════════════════
     private val firebaseSync by lazy { FirebaseSync() }
     private var firebaseSyncScope: CoroutineScope? = null
