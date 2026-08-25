@@ -16,6 +16,21 @@ function fail(message) {
   process.exit(1);
 }
 
+const missingAllSecrets = !process.env.FIREBASE_WEB_API_KEY &&
+  !process.env.FIREBASE_WEB_APP_ID &&
+  !process.env.FIREBASE_WEB_MESSAGING_SENDER_ID;
+
+if (missingAllSecrets) {
+  // CI without the Firebase web secrets (fresh clones / forks) cannot build
+  // the admin hosting bundle — skip with a warning instead of failing the
+  // whole pipeline. The admin panel falls back to demo/offline mode.
+  console.warn(
+    "Skipping hosting allowlist build: FIREBASE_WEB_API_KEY / FIREBASE_WEB_APP_ID / " +
+      "FIREBASE_WEB_MESSAGING_SENDER_ID are not configured."
+  );
+  process.exit(0);
+}
+
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_WEB_API_KEY,
   authDomain: process.env.FIREBASE_WEB_AUTH_DOMAIN || "elwataniatvapp.firebaseapp.com",
