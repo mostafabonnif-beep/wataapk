@@ -6,12 +6,15 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +30,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -41,6 +45,8 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -48,12 +54,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,16 +101,22 @@ fun PremiumLiveHero(
         label = "pulse_scale"
     )
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val isWideScreen = maxWidth >= 600.dp
+        val horizontalGutter = if (isWideScreen) 24.dp else 14.dp
+        val heroMinHeight = if (isWideScreen) 220.dp else 198.dp
+        val heroMaxHeight = if (isWideScreen) 258.dp else 218.dp
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         // Hero Banner
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp)
-                .heightIn(min = 198.dp, max = 218.dp)
+                .padding(horizontal = horizontalGutter)
+                .heightIn(min = heroMinHeight, max = heroMaxHeight)
                 .clip(RoundedCornerShape(20.dp))
                 .background(
                     Brush.radialGradient(
@@ -154,7 +168,10 @@ fun PremiumLiveHero(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(
+                        horizontal = if (isWideScreen) 22.dp else 14.dp,
+                        vertical = if (isWideScreen) 16.dp else 12.dp
+                    ),
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
@@ -219,7 +236,8 @@ fun PremiumLiveHero(
                         modifier = Modifier.fillMaxWidth(),
                         style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl),
                         color = Color.White,
-                        fontSize = 19.sp,
+                                                    fontSize = if (isWideScreen) 22.sp else 19.sp,
+
                         lineHeight = 24.sp,
                         fontWeight = FontWeight.Black,
                         maxLines = 1,
@@ -231,7 +249,7 @@ fun PremiumLiveHero(
                         modifier = Modifier.fillMaxWidth(),
                         style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl),
                         color = Color.White.copy(alpha = 0.75f),
-                        fontSize = 12.sp,
+                        fontSize = if (isWideScreen) 13.sp else 12.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -245,7 +263,7 @@ fun PremiumLiveHero(
                     enabled = streams.isNotEmpty(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(46.dp)
+                        .height(if (isWideScreen) 50.dp else 46.dp)
                         .semantics { contentDescription = watchLiveDescription },
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -267,8 +285,8 @@ fun PremiumLiveHero(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = horizontalGutter),
+                horizontalArrangement = Arrangement.spacedBy(if (isWideScreen) 12.dp else 8.dp)
         ) {
             PremiumQuickAction(
                 icon = Icons.AutoMirrored.Filled.Article,
@@ -292,6 +310,7 @@ fun PremiumLiveHero(
                 modifier = Modifier.weight(1f)
             )
         }
+        }
     }
 }
 
@@ -303,18 +322,34 @@ private fun PremiumQuickAction(
     testTagValue: String,
     modifier: Modifier = Modifier
 ) {
+    var isFocused by androidx.compose.runtime.remember { mutableStateOf(false) }
+    val focusScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isFocused) 1.03f else 1f,
+        animationSpec = androidx.compose.animation.core.tween(160),
+        label = "quick_action_focus_scale"
+    )
+
     Surface(
         modifier = modifier
             .heightIn(min = 76.dp)
+            .graphicsLayer {
+                scaleX = focusScale
+                scaleY = focusScale
+            }
             .testTag(testTagValue)
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .clickable(onClick = onClick)
             .semantics {
                 contentDescription = label
                 role = Role.Button
             },
-        color = Color.White.copy(alpha = 0.03f),
+        color = if (isFocused) BrandPrimary.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.03f),
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+        border = BorderStroke(
+            width = if (isFocused) 1.5.dp else 1.dp,
+            color = if (isFocused) BrandAccent else Color.White.copy(alpha = 0.08f)
+        )
     ) {
         Column(
                 modifier = Modifier
@@ -326,6 +361,7 @@ private fun PremiumQuickAction(
             Icon(icon, contentDescription = null, tint = BrandAccent, modifier = Modifier.size(22.dp))
             Text(
                 text = label,
+                style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl),
                 color = Color.White.copy(alpha = 0.9f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,

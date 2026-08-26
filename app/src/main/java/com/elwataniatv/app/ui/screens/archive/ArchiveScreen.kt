@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -85,6 +86,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.SubcomposeAsyncImage
 import com.elwataniatv.app.data.local.FavoriteProgram
 import com.elwataniatv.app.data.model.ArchiveProgram
@@ -601,6 +603,10 @@ fun ArchiveScreen(
 
         AlertDialog(
             onDismissRequest = { selectedDetailsProgram = null },
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .widthIn(max = 560.dp),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
             title = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

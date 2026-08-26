@@ -124,7 +124,8 @@ fun AppTopBar(
                         style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl),
                         color = Color.White,
                         fontWeight = FontWeight.Black,
-                        fontSize = 16.sp,
+                        fontSize = 17.sp,
+                        lineHeight = 21.sp,
                         letterSpacing = 0.1.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -135,9 +136,10 @@ fun AppTopBar(
                         modifier = Modifier.fillMaxWidth(),
                         style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl),
                         color = Color.White.copy(alpha = 0.55f),
-                        fontSize = 9.sp,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.End
                     )
