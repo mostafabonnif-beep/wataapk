@@ -30,7 +30,7 @@
 
 ## 📦 آخر إصدار قابل للتجربة
 
-الإصدار الحالي من المصدر هو **v8.5.0 / versionCode 36**. رابط التحميل العام هو [`elwataniatvapp.web.app/download`](https://elwataniatvapp.web.app/download)، بينما تبقى الأسرار وملفات التوقيع خارج المستودع. نجحت مهام `compileDebugKotlin` و`testDebugUnitTest` و`lintDebug` و`assembleDebug`، كما نجح CI في GitHub Actions. رابط البث لا يُضمّن داخل التطبيق؛ يقرأ التطبيق المصدر الرسمي المنشور في Firestore. يجب اعتماد اختبار جهاز Android حقيقي أو محاكي KVM قبل التسليم المؤسسي النهائي.
+الإصدار الحالي من المصدر هو **v8.5.1 / versionCode 37**. رابط التحميل العام هو [`elwataniatvapp.web.app/download`](https://elwataniatvapp.web.app/download)، بينما تبقى الأسرار وملفات التوقيع خارج المستودع. نجحت مهام `compileDebugKotlin` و`testDebugUnitTest` و`lintDebug` و`assembleDebug`، كما نجح CI في GitHub Actions. رابط البث لا يُضمّن داخل التطبيق؛ يقرأ التطبيق المصدر الرسمي المنشور في Firestore. يجب اعتماد اختبار جهاز Android حقيقي أو محاكي KVM قبل التسليم المؤسسي النهائي.
 
 ## 🌟 الميزات الرئيسية
 

@@ -38,6 +38,38 @@ class EpgTimeTest {
     }
 
     @Test
+    fun easternArabicDigitsAreParsed() {
+        // Admins often type schedules on Arabic keyboard layouts.
+        assertEquals(20 * 60 + 30, epgTimeMinutes("٢٠:٣٠"))
+        assertEquals(0, epgTimeMinutes("٠٠:٠٠"))
+        assertEquals(23 * 60 + 59, epgTimeMinutes("٢٣:٥٩"))
+    }
+
+    @Test
+    fun persianDigitsAndFullwidthColonAreParsed() {
+        assertEquals(8 * 60 + 45, epgTimeMinutes("۰۸:۴۵"))
+        assertEquals(21 * 60, epgTimeMinutes("21：00"))
+    }
+
+    @Test
+    fun easternArabicDigitDurationsAreParsed() {
+        assertEquals(60, epgDurationMinutes("٦٠ دقيقة"))
+        assertEquals(45, epgDurationMinutes("مدة العرض ٤٥ دقيقة"))
+    }
+
+    @Test
+    fun currentProgramWorksWithEasternArabicDigits() {
+        val current = EpgItem(
+            id = "arabic-digits",
+            startTime = "٢٢:٠٠",
+            title = "نشرة الأخبار",
+            duration = "٣٠ دقيقة"
+        )
+        assertEquals("arabic-digits", currentEpgItem(listOf(current), 22 * 60 + 10)?.id)
+        assertEquals(20, minutesRemainingEpg(current, 22 * 60 + 10))
+    }
+
+    @Test
     fun durationAndProgressAreCalculatedForCurrentProgram() {
         val current = EpgItem(
             id = "current",
