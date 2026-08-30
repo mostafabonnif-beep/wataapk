@@ -157,7 +157,19 @@ fun LiveScreen(
             verticalArrangement = Arrangement.spacedBy(9.dp),
         contentPadding = PaddingValues(top = 2.dp, bottom = 96.dp)
     ) {
-        if (syncError != null) {
+        // Sync status: prefer the richer SyncStatusCard (connection state + last update
+        // time + retry action) when available; fall back to the simple offline banner
+        // if the view model hasn't produced a SyncStatus yet.
+        if (syncStatus != null) {
+            if (!syncStatus.isConnected) {
+                item {
+                    SyncStatusCard(
+                        status = syncStatus,
+                        onRetry = onRetrySync
+                    )
+                }
+            }
+        } else if (syncError != null) {
             item {
                 Row(
                     modifier = Modifier
@@ -317,6 +329,18 @@ fun LiveScreen(
                         modifier = Modifier.testTag("premium_live_hero")
                     )
                 }
+            }
+        }
+
+        // Live stream health: only surfaced when a stream is actively selected and the
+        // background health check has flagged a real issue (avoids noisy UI when everything
+        // is working normally).
+        if (selectedStream != null && streamHealthState != null && !streamHealthState.isLiveActive) {
+            item {
+                StreamHealthCard(
+                    health = streamHealthState,
+                    onRetry = onRetrySync
+                )
             }
         }
 

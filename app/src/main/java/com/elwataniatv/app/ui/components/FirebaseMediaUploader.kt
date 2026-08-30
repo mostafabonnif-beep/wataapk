@@ -40,10 +40,10 @@ import com.elwataniatv.app.ui.theme.BrandPrimary
 @Composable
 fun FirebaseMediaUploader(
     currentUrl: String,
-    label: String = "",
-    folderPath: String = "",
     onUrlGenerated: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    label: String = "",
+    folderPath: String = ""
 ) {
     val context = LocalContext.current
     var selectedUri by remember { mutableStateOf<Uri?>(null) }

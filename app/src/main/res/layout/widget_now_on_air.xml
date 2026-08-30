@@ -43,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/widget_now_on_air"
                 android:textColor="#F5B041"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 

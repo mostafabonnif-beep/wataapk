@@ -47,10 +47,10 @@ fun AppTopBar(
     appName: String,
     appSlogan: String,
     logoUrl: String,
+    modifier: Modifier = Modifier,
     canNavigateBack: Boolean = false,
     onNavigateBack: () -> Unit = {},
-    onSettingsClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onSettingsClick: () -> Unit = {}
 ) {
     val settingsDescription = stringResource(R.string.tab_settings)
     val backDescription = stringResource(R.string.back)

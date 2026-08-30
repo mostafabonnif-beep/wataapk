@@ -1,8 +1,8 @@
 package com.elwataniatv.app.ui.screens.settings
 
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -125,7 +125,7 @@ fun ContactChannelCard(
                                     throw IllegalArgumentException("invalid email")
                                 }
                                 context.startActivity(
-                                    Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${Uri.encode(email)}"))
+                                    Intent(Intent.ACTION_SENDTO, "mailto:${android.net.Uri.encode(email)}".toUri())
                                 )
                             }.onFailure {
                                 Toast.makeText(context, linkOpenError, Toast.LENGTH_SHORT).show()

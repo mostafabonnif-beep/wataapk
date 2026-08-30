@@ -209,7 +209,7 @@ dependencies {
     implementation(libs.firebase.appcheck.debug)
     implementation(libs.play.review)
 
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.ext.junit)

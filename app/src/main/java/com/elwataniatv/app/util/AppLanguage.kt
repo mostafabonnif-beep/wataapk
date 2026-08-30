@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
 import android.os.LocaleList
+import androidx.core.content.edit
 import java.util.Locale
 
 /**
@@ -33,7 +34,7 @@ object AppLanguage {
         val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
         val savedLanguage = preferences.getString(LANGUAGE_KEY, null)?.let(::normalize)
         val language = savedLanguage ?: detectInitialLanguage(context).also {
-            preferences.edit().putString(LANGUAGE_KEY, it).apply()
+            preferences.edit { putString(LANGUAGE_KEY, it) }
         }
 
         applyToApplication(context, language)
@@ -50,9 +51,7 @@ object AppLanguage {
     fun applyAppLanguage(activity: Activity, languageTag: String) {
         val language = normalize(languageTag)
         activity.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(LANGUAGE_KEY, language)
-            .apply()
+            .edit { putString(LANGUAGE_KEY, language) }
 
         val currentLanguage = currentApplicationLanguage(activity)
         applyToApplication(activity, language)
