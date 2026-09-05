@@ -58,17 +58,24 @@ for (const [source, destination, kind] of entries) {
 
 fs.rmSync(outputDir, { recursive: true, force: true });
 fs.mkdirSync(path.join(outputDir, "admin"), { recursive: true });
-const firebaseConfigPath = path.join(outputDir, "admin", "firebase-config.js");
-fs.writeFileSync(
-  firebaseConfigPath,
-  `window.__WATANIA_FIREBASE_CONFIG__ = Object.freeze(${JSON.stringify(firebaseConfig)});\n`,
-  "utf8"
-);
+const firebaseConfigScript = `window.__WATANIA_FIREBASE_CONFIG__ = Object.freeze(${JSON.stringify(firebaseConfig)});`;
 
 for (const [source, destination] of entries) {
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.cpSync(source, destination, { recursive: true });
 }
+
+const hostedAdminIndex = path.join(outputDir, "admin", "index.html");
+const hostedIndexHtml = fs.readFileSync(hostedAdminIndex, "utf8");
+const firebaseConfigTag = /<script src="\.\/firebase-config\.js\?v=[^"]+"><\/script>/;
+if (!firebaseConfigTag.test(hostedIndexHtml)) {
+  fail("admin/index.html is missing its Firebase config script tag");
+}
+fs.writeFileSync(
+  hostedAdminIndex,
+  hostedIndexHtml.replace(firebaseConfigTag, `<script>${firebaseConfigScript}</script>`),
+  "utf8"
+);
 
 // Firebase Spark Hosting rejects executable files such as APKs. Keep the
 // signed APK in the private repository, but publish only a Base64 text
@@ -85,7 +92,7 @@ if (fs.existsSync(downloadsOutput)) {
 
 console.log("Firebase Hosting tree built from allowlist:");
 console.log("- admin/index.html -> admin/hosting-dist/admin/index.html");
-console.log("- Firebase config injected -> admin/hosting-dist/admin/firebase-config.js");
+console.log("- Firebase config injected inline -> admin/hosting-dist/admin/index.html");
 console.log("- privacy.html -> admin/hosting-dist/privacy.html");
 console.log("- download.html -> admin/hosting-dist/download.html");
 console.log("- assets/ -> admin/hosting-dist/assets/");
