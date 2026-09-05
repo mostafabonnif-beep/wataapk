@@ -21,14 +21,9 @@ const missingAllSecrets = !process.env.FIREBASE_WEB_API_KEY &&
   !process.env.FIREBASE_WEB_MESSAGING_SENDER_ID;
 
 if (missingAllSecrets) {
-  // CI without the Firebase web secrets (fresh clones / forks) cannot build
-  // the admin hosting bundle — skip with a warning instead of failing the
-  // whole pipeline. The admin panel falls back to demo/offline mode.
   console.warn(
-    "Skipping hosting allowlist build: FIREBASE_WEB_API_KEY / FIREBASE_WEB_APP_ID / " +
-      "FIREBASE_WEB_MESSAGING_SENDER_ID are not configured."
+    "Building the admin artifact without Firebase web secrets; the panel will remain in offline/demo mode."
   );
-  process.exit(0);
 }
 
 const firebaseConfig = {
@@ -41,14 +36,10 @@ const firebaseConfig = {
   measurementId: process.env.FIREBASE_WEB_MEASUREMENT_ID || ""
 };
 
-const requiredFirebaseFields = ["apiKey", "messagingSenderId", "appId"];
-const missingFirebaseFields = requiredFirebaseFields.filter((field) => !firebaseConfig[field]);
+const missingFirebaseFields = ["apiKey", "messagingSenderId", "appId"]
+  .filter((field) => !firebaseConfig[field]);
 if (missingFirebaseFields.length) {
-  if (process.env.ALLOW_HOSTING_BUILD_SKIP === "true") {
-    console.warn(`Skipping Firebase Hosting build: missing ${missingFirebaseFields.join(", ")}.`);
-    process.exit(0);
-  }
-  fail(`missing Firebase Hosting build variables: ${missingFirebaseFields.join(", ")}`);
+  console.warn(`Firebase config fields unavailable: ${missingFirebaseFields.join(", ")}.`);
 }
 
 const entries = [
