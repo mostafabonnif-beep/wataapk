@@ -329,3 +329,21 @@ test('unknown paths are denied', async () => {
   await assertFails(setDoc(doc(unauthenticatedFirestore(), 'unknown/path'), { value: true }));
   await assertFails(getDoc(doc(unauthenticatedFirestore(), 'unknown/path')));
 });
+
+test('news is publicly readable', async () => {
+  await assertSucceeds(getDoc(doc(unauthenticatedFirestore(), 'news/item-1')));
+});
+
+test('editors can publish news but ordinary users cannot', async () => {
+  const news = {
+    title: 'Breaking newsroom update',
+    summary: 'A short editorial summary',
+    url: 'https://example.com/story',
+    imageUrl: 'https://example.com/image.jpg',
+    order: 1,
+    isActive: true,
+    createdAt: Timestamp.fromMillis(1_700_000_000_000),
+  };
+  await assertSucceeds(setDoc(doc(firestoreFor(editorAuth), 'news/editorial-1'), news));
+  await assertFails(setDoc(doc(firestoreFor(userAuth), 'news/user-1'), news));
+});

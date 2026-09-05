@@ -382,4 +382,8 @@
     <string name="guide_today">Aujourd\'hui</string>
     <string name="guide_yesterday">Hier</string>
     <string name="guide_tomorrow">Demain</string>
+    <string name="new_content_channel_name">Nouveau contenu éditorial</string>
+    <string name="new_content_channel_description">Alertes lors de la publication de contenu éditorial</string>
+    <string name="new_content_notification_title">Nouveau contenu d’Elwatania TV</string>
+    <string name="new_content_notification_summary">%1$s et %2$d autres nouveaux éléments</string>
 </resources>

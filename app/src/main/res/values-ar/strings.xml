@@ -412,4 +412,8 @@
     <string name="guide_today">اليوم</string>
     <string name="guide_yesterday">أمس</string>
     <string name="guide_tomorrow">غداً</string>
+    <string name="new_content_channel_name">محتوى تحريري جديد</string>
+    <string name="new_content_channel_description">تنبيهات عند نشر محتوى جديد من غرفة الأخبار</string>
+    <string name="new_content_notification_title">محتوى جديد من الوطنية تي في</string>
+    <string name="new_content_notification_summary">%1$s و%2$d عناصر جديدة أخرى</string>
 </resources>

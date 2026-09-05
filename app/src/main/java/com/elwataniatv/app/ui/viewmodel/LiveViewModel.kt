@@ -59,6 +59,7 @@ class LiveViewModel @Inject constructor(
     val myReaction = repository.myReaction
     val streamHealthState: StateFlow<StreamHealthState> = repository.streamHealthState
     val adBanners = repository.adBanners
+    val newsItems: StateFlow<List<com.elwataniatv.app.data.model.NewsItem>> = repository.newsItems
     val activeDevices = repository.activeDevices
     val syncError: StateFlow<String?> = repository.syncError
 

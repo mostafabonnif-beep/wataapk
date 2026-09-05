@@ -94,6 +94,11 @@ service cloud.firestore {
     allow write: if isEditor();
   }
 
+  match /news/{docId} {
+    allow read: if true;
+    allow write: if isEditor();
+  }
+
   match /social/{docId} {
     allow read: if true;
     allow write: if isEditor();

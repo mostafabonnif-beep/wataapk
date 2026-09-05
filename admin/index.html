@@ -206,6 +206,7 @@ html[dir="rtl"] body{direction:rtl;text-rendering:optimizeLegibility;-webkit-fon
     <button data-tab="breaking" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">🚨 عاجل</button>
     <button data-tab="archive" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📂 الأرشيف</button>
     <button data-tab="epg" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📅 البرامج</button>
+    <button data-tab="news" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📰 الأخبار</button>
     <button data-tab="websites" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">🌐 المواقع</button>
     <button data-tab="social" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📱 التواصل</button>
     <button data-tab="push" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">🔔 الإشعارات</button>
@@ -224,6 +225,7 @@ html[dir="rtl"] body{direction:rtl;text-rendering:optimizeLegibility;-webkit-fon
     <div id="pane-breaking" class="pane hidden space-y-6"></div>
     <div id="pane-archive" class="pane hidden space-y-6"></div>
     <div id="pane-epg" class="pane hidden space-y-6"></div>
+    <div id="pane-news" class="pane hidden space-y-6"></div>
     <div id="pane-websites" class="pane hidden space-y-6"></div>
     <div id="pane-social" class="pane hidden space-y-6"></div>
     <div id="pane-push" class="pane hidden space-y-6"></div>
@@ -403,8 +405,8 @@ async function hasAdminClaim(user) {
 }
 
 function allowedTabsForRole(role) {
-  if (role === "admin") return ["streams", "breaking", "archive", "epg", "websites", "social", "push", "ads", "live", "help", "activity", "stats"];
-  if (role === "editor") return ["streams", "archive", "epg", "websites", "social", "help"];
+  if (role === "admin") return ["streams", "breaking", "news", "archive", "epg", "websites", "social", "push", "ads", "live", "help", "activity", "stats"];
+  if (role === "editor") return ["streams", "news", "archive", "epg", "websites", "social", "help"];
   if (role === "moderator") return ["help"];
   return [];
 }
@@ -986,6 +988,7 @@ function mountAllPanes() {
   mount("epg", mountEpgPane);
   mount("push", mountPushPane);
   mount("stats", mountStatsPane);
+  mount("news", mountNewsPane);
   mount("websites", mountWebsitesPane);
   mount("social", mountSocialPane);
   mount("config", mountConfigPane);
@@ -1713,7 +1716,112 @@ async function mountEpgPane() {
 }
 
 /* ==========================================
-   🌐 WEBSITES PANE (المواقع الإخبارية)
+   📰 NEWS PANE (نشرة أخبار المؤسسة)
+   ========================================== */
+async function mountNewsPane() {
+  const pane = $("#pane-news");
+  pane.innerHTML = `
+    <div class="bg-brand-panel border border-brand-border rounded-2xl p-6 shadow-xl">
+      <div class="flex items-center justify-between border-b border-brand-border/60 pb-4 mb-4">
+        <div>
+          <h2 class="text-lg font-black text-white">📰 نشرة أخبار المؤسسة الإعلامية</h2>
+          <p class="text-xs text-slate-400">تظهر هذه الأخبار في بطاقة "أحدث الأخبار" بالصفحة الرئيسية للتطبيق — رتبها بالأحدث أولاً عبر رقم الترتيب</p>
+        </div>
+        <button class="btn-primary text-xs py-2" id="addNewsBtn">➕ إضافة خبر</button>
+        <button class="btn-ghost text-xs py-2" onclick="exportCollection('news','الأخبار')">📥 تصدير</button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr>
+              <th class="text-center w-12">الصورة</th>
+              <th class="text-right">عنوان الخبر</th>
+              <th class="text-right">الملخص</th>
+              <th class="text-left">رابط الخبر الكامل</th>
+              <th class="text-center">ترتيب الظهور</th>
+              <th class="text-center">حالة العرض</th>
+              <th class="text-left">التحكم</th>
+            </tr>
+          </thead>
+          <tbody id="newsTableBody">
+            <tr><td colspan="7" class="empty">جاري تحميل نشرة الأخبار...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  $("#addNewsBtn").onclick = () => {
+    openModal("إضافة خبر جديد إلى نشرة الأخبار", [
+      { key: "title", label: "عنوان الخبر كما سيظهر في التطبيق", type: "text", required: true },
+      { key: "summary", label: "ملخص موجز للخبر (سطر واحد)", type: "text", required: false },
+      { key: "url", label: "رابط الخبر الكامل (مقال أو فيديو يوتيوب) — اختياري", type: "text", required: false },
+      { key: "imageUrl", label: "رابط صورة الخبر (اختياري)", type: "text", required: false },
+      { key: "order", label: "رقم الترتيب (الأصغر يظهر أولاً)", type: "number", value: 0, required: true },
+      { key: "isActive", label: "عرض الخبر في التطبيق حالاً", type: "checkbox", value: true }
+    ], async (vals) => {
+      await addDoc(collection(state.db, "news"), { ...vals, createdAt: Date.now() });
+    });
+  };
+
+  const unsub = onSnapshot(collection(state.db, "news"), (snapshot) => {
+    const tbody = $("#newsTableBody");
+    tbody.innerHTML = "";
+    const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    if (docs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty">لا توجد أخبار منشورة بعد — اضغط "إضافة خبر" لبدء النشرة.</td></tr>`;
+      return;
+    }
+    docs.forEach(docData => {
+      const tr = el("tr");
+      tr.innerHTML = `
+        <td class="text-center">
+          ${docData.imageUrl ? `<img src="${escapeAttr(docData.imageUrl)}" alt="" class="w-12 h-9 object-cover rounded-lg border border-white/10" onerror="this.replaceWith(document.createTextNode('📷'))">` : `<span class="text-2xl">📰</span>`}
+        </td>
+        <td class="font-bold text-white text-sm max-w-xs line-clamp-2">${escapeHtml(docData.title)}</td>
+        <td class="text-xs text-slate-400 max-w-xs line-clamp-2 leading-normal">${escapeHtml(docData.summary ?? "")}</td>
+        <td class="url-cell text-xs font-mono">${docData.url ? `<a href="${escapeAttr(docData.url)}" target="_blank" class="hover:underline font-bold text-sky-400">${escapeHtml(String(docData.url).slice(0, 42))}${String(docData.url).length > 42 ? '…' : ''}</a>` : `<span class="text-slate-600">—</span>`}</td>
+        <td class="text-center font-mono text-slate-300">${docData.order ?? 0}</td>
+        <td class="text-center">
+          <div class="flex items-center justify-center gap-1.5">
+            <span class="status-dot ${docData.isActive ? 'status-on' : 'status-off'}"></span>
+            <span class="text-xs ${docData.isActive ? 'text-emerald-400' : 'text-slate-500'}">${docData.isActive ? 'ظاهر' : 'مخفي'}</span>
+          </div>
+        </td>
+        <td>
+          <div class="flex items-center justify-end gap-2">
+            <button class="btn-ghost text-xs text-sky-400 hover:bg-sky-500/10 px-2 py-1 rounded edit-btn">🔧 تعديل</button>
+            <button class="btn-ghost text-xs text-red-400 hover:bg-red-500/10 px-2 py-1 rounded delete-btn">🗑️ حذف</button>
+          </div>
+        </td>
+      `;
+      tr.querySelector(".edit-btn").onclick = () => {
+        openModal("تعديل الخبر", [
+          { key: "title", label: "عنوان الخبر", type: "text", value: docData.title, required: true },
+          { key: "summary", label: "الملخص الموجز", type: "text", value: docData.summary, required: false },
+          { key: "url", label: "رابط الخبر الكامل", type: "text", value: docData.url, required: false },
+          { key: "imageUrl", label: "رابط صورة الخبر", type: "text", value: docData.imageUrl, required: false },
+          { key: "order", label: "ترتيب الظهور", type: "number", value: docData.order, required: true },
+          { key: "isActive", label: "تفعيل وعرض الخبر", type: "checkbox", value: docData.isActive }
+        ], async (vals) => {
+          await updateDoc(doc(state.db, "news", docData.id), vals);
+        });
+      };
+      tr.querySelector(".delete-btn").onclick = async () => {
+        if (confirmDelete(docData.title)) {
+          await deleteDoc(doc(state.db, "news", docData.id));
+        }
+      };
+      tbody.append(tr);
+    });
+  }, (err) => updateGlobalError(err));
+  trackUnsub(unsub);
+}
+
+/* ==========================================
+   🌐 WEBSITES PANE (المواقع المدمجة)
    ========================================== */
 async function mountWebsitesPane() {
   const pane = $("#pane-websites");
@@ -2252,6 +2360,10 @@ async function mountStatsPane() {
         <span class="text-xs font-bold text-slate-400">📂 برامج الأرشيف</span>
         <span class="text-3xl font-black text-rose-500 mt-2" id="stat-archive">0</span>
       </div>
+      <div class="bg-brand-panel border border-brand-border rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-orange-500/40 transition-all">
+        <span class="text-xs font-bold text-slate-400">📰 أخبار المؤسسة</span>
+        <span class="text-3xl font-black text-orange-400 mt-2" id="stat-news">0</span>
+      </div>
       <div class="bg-brand-panel border border-brand-border rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-emerald-500/40 transition-all">
         <span class="text-xs font-bold text-slate-400">🌐 المواقع المدمجة</span>
         <span class="text-3xl font-black text-emerald-500 mt-2" id="stat-websites">0</span>
@@ -2287,6 +2399,7 @@ async function mountStatsPane() {
       </div>
       <div class="flex flex-wrap gap-2">
         <button class="btn-primary text-xs flex items-center gap-1.5 py-1.5" onclick="document.querySelector('[data-tab=breaking]')?.click()">🚨 نشر خبر عاجل</button>
+        <button class="btn-primary text-xs flex items-center gap-1.5 py-1.5" onclick="document.querySelector('[data-tab=news]')?.click()">📰 إضافة خبر للنشرة</button>
         <button class="btn-primary text-xs flex items-center gap-1.5 py-1.5" onclick="document.querySelector('[data-tab=push]')?.click()">🔔 إرسال إشعار</button>
         <button class="btn-ghost text-xs flex items-center gap-1.5 py-1.5" onclick="exportCollection('streams','قنوات البث')">📥 تصدير البث</button>
         <button class="btn-ghost text-xs flex items-center gap-1.5 py-1.5" onclick="exportCollection('archive','الأرشيف')">📥 تصدير الأرشيف</button>
@@ -2332,6 +2445,8 @@ async function mountStatsPane() {
   const unsub4 = onSnapshot(collection(state.db, "social"), (snap) => { $("#stat-social").textContent = snap.size; });
   const unsub5 = onSnapshot(collection(state.db, "notifications"), (snap) => { const el=$("#stat-push"); if(el) el.textContent = snap.size; });
   const unsub6 = onSnapshot(collection(state.db, "epg"), (snap) => { const el=$("#stat-epg"); if(el) el.textContent = snap.size; });
+  const unsubNews = onSnapshot(collection(state.db, "news"), (snap) => { const el=$("#stat-news"); if(el) el.textContent = snap.size; });
+  trackUnsub(unsubNews);
   trackUnsub(unsub1); trackUnsub(unsub2); trackUnsub(unsub3); trackUnsub(unsub4); trackUnsub(unsub5); trackUnsub(unsub6);
 
   // Live clock update

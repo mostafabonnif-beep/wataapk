@@ -67,6 +67,9 @@ class FirestoreContentSync(private val authSync: FirebaseAuthSync) {
     private val _websites = MutableStateFlow<List<WebsiteItem>?>(null)
     val websites: StateFlow<List<WebsiteItem>?> = _websites.asStateFlow()
 
+    private val _news = MutableStateFlow<List<NewsItem>>(emptyList())
+    val news: StateFlow<List<NewsItem>> = _news.asStateFlow()
+
     private val _social = MutableStateFlow<List<SocialPage>?>(null)
     val social: StateFlow<List<SocialPage>?> = _social.asStateFlow()
 
@@ -438,6 +441,36 @@ class FirestoreContentSync(private val authSync: FirebaseAuthSync) {
                 }
             listeners += unsub
         }.onFailure { e -> Log.w(TAG, "فشل listenEpg: ${e.message}") }
+    }
+
+    fun listenNews(db: FirebaseFirestore) {
+        runCatching {
+            val unsub = db.collection("news")
+                .addSnapshotListener { snap, err ->
+                    if (err != null || snap == null) {
+                        _syncError.value = err?.message ?: "Firestore snapshot unavailable"
+                        return@addSnapshotListener
+                    }
+                    _syncError.value = null
+                    _news.value = snap.documents.mapNotNull { d ->
+                        runCatching {
+                            NewsItem(
+                                id = d.id,
+                                title = d.getString("title") ?: "",
+                                summary = d.getString("summary") ?: "",
+                                url = d.getString("url") ?: "",
+                                imageUrl = d.getString("imageUrl") ?: "",
+                                order = (d.getLong("order") ?: 0L).toInt(),
+                                isActive = d.getBoolean("isActive") ?: true,
+                                createdAt = d.getLong("createdAt") ?: 0L,
+                            )
+                        }.getOrNull()
+                    }
+                        .filter { it.isActive && it.title.isNotBlank() && !isTestValue(it.title) }
+                        .sortedWith(compareBy<NewsItem> { it.order }.thenBy { it.createdAt })
+                }
+            listeners += unsub
+        }.onFailure { e -> Log.w(TAG, "فشل listenNews: ${e.message}") }
     }
 
     fun listenWebsites(db: FirebaseFirestore) {

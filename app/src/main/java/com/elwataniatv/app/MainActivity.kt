@@ -37,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.elwataniatv.app.ui.components.GlobalErrorBoundary
 import com.elwataniatv.app.data.model.featuredArchivePreview
+import com.elwataniatv.app.notifications.NewContentNotifier
 import com.elwataniatv.app.ui.components.AppBottomBar
 import com.elwataniatv.app.ui.components.AppTopBar
 import com.elwataniatv.app.ui.components.AppNavHost
@@ -81,6 +82,13 @@ private val notificationHosts = youtubeHosts + setOf(
 private fun openYouTubeUrl(context: Context, rawUrl: String) {
     val uri = safeHttpUri(rawUrl) ?: return
     if (!isAllowedHost(uri, youtubeHosts)) return
+    runCatching {
+        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+    }
+}
+
+private fun openNewsUrl(context: Context, rawUrl: String) {
+    val uri = safeHttpUri(rawUrl) ?: return
     runCatching {
         context.startActivity(Intent(Intent.ACTION_VIEW, uri))
     }
@@ -371,6 +379,11 @@ fun MainAppShell(
     val popupAlert by viewModel.popupAlert.collectAsState()
     val streamHealthState by liveViewModel.streamHealthState.collectAsState()
     val adBanners by liveViewModel.adBanners.collectAsState()
+    val newsItems by liveViewModel.newsItems.collectAsState()
+    var knownArchiveIds by remember { mutableStateOf<Set<String>?>(null) }
+    LaunchedEffect(rawArchive) {
+        knownArchiveIds = NewContentNotifier.notifyNewArchivePrograms(context, rawArchive, knownArchiveIds)
+    }
     val adminSecurity by viewModel.adminSecurity.collectAsState()
 
     if (updatePromptVisible && (forceUpdate || optionalUpdate)) {
@@ -465,6 +478,7 @@ fun MainAppShell(
                     archivePrograms = if (appConfig.showArchivePreview) featuredArchivePreview(rawArchive) else emptyList(),
                     reminders = reminders,
                     adBanners = if (appConfig.showPromotionalBanners) adBanners else emptyList(),
+                    newsItems = newsItems,
                     enableEpg = appConfig.enableEpg,
                     inAppNotifications = inAppNotifications,
                     streamHealthState = streamHealthState,
@@ -475,6 +489,7 @@ fun MainAppShell(
                     onOpenGuide = { navController.navigate(Screen.Guide.route) { launchSingleTop = true } },
                     onOpenArchive = { navController.navigate(Screen.Archive.route) { launchSingleTop = true } },
                     onOpenYouTube = { url -> openYouTubeUrl(context, url) },
+                    onOpenNewsUrl = { url -> openNewsUrl(context, url) },
                     onShareLive = { stream ->
                         val streamTitle = stream.title.trim().ifBlank {
                             appConfig.appName.ifBlank { shareLiveAppName }

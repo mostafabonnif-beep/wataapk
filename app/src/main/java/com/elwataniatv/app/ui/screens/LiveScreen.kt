@@ -97,6 +97,7 @@ fun LiveScreen(
     archivePrograms: List<ArchiveProgram> = emptyList(),
     reminders: List<ProgramReminder>,
     adBanners: List<AdBanner> = emptyList(),
+    newsItems: List<com.elwataniatv.app.data.model.NewsItem> = emptyList(),
     enableEpg: Boolean = true,
     inAppNotifications: List<com.elwataniatv.app.data.remote.InAppNotification> = emptyList(),
     streamHealthState: StreamHealthState? = null,
@@ -108,6 +109,7 @@ fun LiveScreen(
     onOpenGuide: () -> Unit = {},
     onOpenArchive: () -> Unit = {},
     onOpenYouTube: (String) -> Unit = {},
+    onOpenNewsUrl: (String) -> Unit = {},
     onShareLive: (RemoteStream) -> Unit = {},
     onRetrySync: () -> Unit = {}
 ) {
@@ -354,8 +356,10 @@ fun LiveScreen(
 
         item {
             HomeLatestNewsSection(
+                newsItems = newsItems,
                 archivePrograms = archivePrograms,
-                onOpenYouTube = onOpenYouTube
+                onOpenYouTube = onOpenYouTube,
+                onOpenNewsUrl = onOpenNewsUrl
             )
         }
 
@@ -885,9 +889,14 @@ private fun isPlaceholderContent(value: String): Boolean = !ContentSanitizer.isU
 
 @Composable
 private fun HomeLatestNewsSection(
+    newsItems: List<com.elwataniatv.app.data.model.NewsItem>,
     archivePrograms: List<ArchiveProgram>,
-    onOpenYouTube: (String) -> Unit
+    onOpenYouTube: (String) -> Unit,
+    onOpenNewsUrl: (String) -> Unit
 ) {
+    val activeNews = newsItems.filter { article ->
+        !isPlaceholderContent(article.title) && (article.url.isBlank() || article.url.startsWith("http"))
+    }
     val playablePrograms = archivePrograms.filter { program ->
         program.youtubeUrl.isNotBlank() &&
             !isPlaceholderContent(program.title) &&
@@ -951,7 +960,25 @@ private fun HomeLatestNewsSection(
             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
         ) {
             Column {
-                if (playablePrograms.isNotEmpty()) {
+                if (activeNews.isNotEmpty()) {
+                    activeNews.take(3).forEachIndexed { index, article ->
+                        NewsItemRow(
+                            category = article.summary.ifBlank { defaultNewsCategory },
+                            title = article.title,
+                            time = if (index == 0) justNow else recent,
+                            thumbnailUrl = article.imageUrl,
+                            onClick = {
+                                if (article.url.isNotBlank()) onOpenNewsUrl(article.url)
+                            }
+                        )
+                        if (index == 0 && activeNews.size > 1) {
+                            HorizontalDivider(
+                                color = Color.White.copy(alpha = 0.06f),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
+                } else if (playablePrograms.isNotEmpty()) {
                     playablePrograms.take(2).forEachIndexed { index, program ->
                         NewsItemRow(
                             category = program.category.ifBlank { defaultNewsCategory },

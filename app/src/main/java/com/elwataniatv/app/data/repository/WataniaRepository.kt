@@ -49,6 +49,10 @@ class WataniaRepository(private val db: AppDatabase, private val appContext: and
     private val _socialPages = MutableStateFlow<List<SocialPage>>(DEFAULT_SOCIAL)
     val socialPages: StateFlow<List<SocialPage>> = _socialPages.asStateFlow()
 
+    // نشرة الأخبار الرسمية للمؤسسة (من مجموعة news في Firestore)
+    private val _newsItems = MutableStateFlow<List<NewsItem>>(emptyList())
+    val newsItems: StateFlow<List<NewsItem>> = _newsItems.asStateFlow()
+
     private val _archivePrograms = MutableStateFlow<List<ArchiveProgram>>(DEFAULT_ARCHIVE)
     val archivePrograms: StateFlow<List<ArchiveProgram>> = _archivePrograms.asStateFlow()
 
@@ -625,6 +629,10 @@ class WataniaRepository(private val db: AppDatabase, private val appContext: and
                         )
                     }
                 }
+            }
+            // نشرة الأخبار الرسمية
+            launchSync(news) { list ->
+                if (list != null) _newsItems.value = list
             }
             // ترددات الأقمار الصناعية
             launchSync(satelliteFrequencies) { list ->

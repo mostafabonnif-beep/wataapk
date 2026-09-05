@@ -11,6 +11,7 @@ import com.elwataniatv.app.data.model.RemoteAppConfig
 import com.elwataniatv.app.data.model.RemoteStream
 import com.elwataniatv.app.data.model.SocialPage
 import com.elwataniatv.app.data.model.SatelliteFrequency
+import com.elwataniatv.app.data.model.NewsItem
 import com.elwataniatv.app.data.model.WebsiteItem
 import kotlinx.coroutines.flow.StateFlow
 
@@ -56,6 +57,7 @@ class FirebaseSync {
     val breaking: StateFlow<BreakingNews?> by contentSync::breaking
     val appConfig: StateFlow<RemoteAppConfig?> by contentSync::appConfig
     val epg: StateFlow<List<EpgItem>?> by contentSync::epg
+    val news: StateFlow<List<NewsItem>?> by contentSync::news
     val satelliteFrequencies: StateFlow<List<SatelliteFrequency>?> by contentSync::satelliteFrequencies
     val websites: StateFlow<List<WebsiteItem>?> by contentSync::websites
     val social: StateFlow<List<SocialPage>?> by contentSync::social
@@ -96,6 +98,7 @@ class FirebaseSync {
         contentSync.listenBreaking(dbInstance)
         contentSync.listenAppConfig(dbInstance)
         contentSync.listenEpg(dbInstance)
+        contentSync.listenNews(dbInstance)
         contentSync.listenSatelliteFrequencies(dbInstance)
         contentSync.listenWebsites(dbInstance)
         contentSync.listenSocial(dbInstance)

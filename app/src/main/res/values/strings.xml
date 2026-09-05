@@ -320,6 +320,10 @@
     <string name="notification_channel_general">General notifications</string>
     <string name="notification_channel_general_description">General notifications from Elwatania TV</string>
     <string name="reminder_channel_name">Program reminders</string>
+    <string name="new_content_channel_name">New editorial content</string>
+    <string name="new_content_channel_description">Alerts when the newsroom publishes new archive content</string>
+    <string name="new_content_notification_title">New content from Elwatania TV</string>
+    <string name="new_content_notification_summary">%1$s and %2$d more new items</string>
     <string name="reminder_channel_description">Alerts for Elwatania TV program times</string>
     <string name="reminder_default_title">Elwatania TV program</string>
     <string name="reminder_starts_now">Starting now on Elwatania TV</string>
