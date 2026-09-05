@@ -54,11 +54,15 @@ jobs:
             exit 0
           fi
           test -f "$dist/admin/index.html"
+          test -f "$dist/admin/firebase-config.js"
           test -f "$dist/privacy.html"
+          test -f "$dist/download.html"
           test -d "$dist/assets"
           if find "$dist" -type f \
               ! -path "$dist/admin/index.html" \
+              ! -path "$dist/admin/firebase-config.js" \
               ! -path "$dist/privacy.html" \
+              ! -path "$dist/download.html" \
               ! -path "$dist/assets/*" \
               -print -quit | grep -q .; then
             echo "Unexpected file found in Firebase Hosting output" >&2
