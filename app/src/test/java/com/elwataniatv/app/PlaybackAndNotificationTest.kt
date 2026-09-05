@@ -1,5 +1,7 @@
 package com.elwataniatv.app
 
+import com.elwataniatv.app.notifications.ReminderScheduler
+import java.util.Calendar
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -32,6 +34,25 @@ class PlaybackAndNotificationTest {
         assertFalse(isVersionLessThan("7.1.2", "7.1.2"))
         assertFalse(isVersionLessThan("7.1.2", "7.1.1"))
         assertFalse(isVersionLessThan("7.1.2", ""))
+    }
+
+    @Test
+    fun reminderTrigger_rollsPastTimesToTheNextDay() {
+        val now = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.JANUARY, 1, 10, 0, 0)
+        }
+        val sameDay = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.JANUARY, 1, 10, 1, 0)
+        }
+        val nextDay = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.JANUARY, 2, 10, 0, 0)
+        }
+
+        assertEquals(sameDay.timeInMillis, ReminderScheduler.nextTriggerMillis("10:01", now.timeInMillis))
+        assertEquals(nextDay.timeInMillis, ReminderScheduler.nextTriggerMillis("10:00", now.timeInMillis))
     }
 
     @Test

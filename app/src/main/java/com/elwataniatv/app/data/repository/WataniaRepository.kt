@@ -542,8 +542,8 @@ class WataniaRepository(private val db: AppDatabase, private val appContext: and
     suspend fun addReminder(item: EpgItem) {
         val reminder = ProgramReminder(id = item.id, programTitle = item.title, startTime = item.startTime)
         db.remindersDao().saveReminder(reminder)
-        // REAL scheduling: an exact alarm fires a system notification when
-        // the program starts (and is rescheduled on boot).
+        // REAL scheduling: an inexact daily alarm fires near the program start.
+        // It is rescheduled after delivery and on boot.
         appContext?.let { ctx ->
             com.elwataniatv.app.notifications.ReminderScheduler.ensureChannel(ctx)
             com.elwataniatv.app.notifications.ReminderScheduler.schedule(ctx, reminder)

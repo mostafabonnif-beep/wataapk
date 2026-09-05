@@ -1,6 +1,5 @@
 package com.elwataniatv.app.notifications
 
-import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,27 +7,26 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.elwataniatv.app.R
 import com.elwataniatv.app.data.local.ProgramReminder
 import java.util.Calendar
-import java.util.TimeZone
 
 /**
  * Real EPG program reminders.
  *
- * Stores nothing itself — it (re)schedules an exact alarm per ProgramReminder
- * stored in Room. When the alarm fires, [ReminderReceiver] posts a system
- * notification; on device reboot [BootReceiver] reschedules every stored
- * reminder. Falls back to a windowed (inexact) alarm when the app lacks the
- * SCHEDULE_EXACT_ALARM permission.
+ * Stores nothing itself — it schedules an intentionally inexact daily alarm
+ * per ProgramReminder stored in Room. When the alarm fires, [ReminderReceiver]
+ * posts a system notification and schedules the next occurrence. On device
+ * reboot [BootReceiver] restores every enabled reminder without requiring the
+ * special exact-alarm permission.
  */
 object ReminderScheduler {
 
     const val CHANNEL_REMINDERS = "program-reminders"
-    private const val EXTRA_TITLE = "program_title"
-    private const val EXTRA_TIME = "program_time"
+    internal const val EXTRA_ID = "program_id"
+    internal const val EXTRA_TITLE = "program_title"
+    internal const val EXTRA_TIME = "program_time"
     private const val REQUEST_CODE_BASE = 5000
 
     fun ensureChannel(context: Context) {
@@ -45,32 +43,18 @@ object ReminderScheduler {
         manager.createNotificationChannel(channel)
     }
 
-    /** Schedules (or reschedules) the alarm for a single reminder. */
-    @SuppressLint("MissingPermission")
+    /** Schedules (or reschedules) the inexact alarm for a single reminder. */
     fun schedule(context: Context, reminder: ProgramReminder) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val triggerAt = nextTriggerMillis(reminder.startTime)
-        val pendingIntent = pendingIntent(context, reminder)
-        val exactAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
-        if (!exactAllowed) {
-            alarmManager.setWindow(
-                AlarmManager.RTC_WAKEUP,
-                triggerAt,
-                15 * 60 * 1000L,
-                pendingIntent
-            )
+        if (!reminder.enabled) {
+            cancel(context, reminder)
             return
         }
-        runCatching {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
-        }.onFailure {
-            alarmManager.setWindow(
-                AlarmManager.RTC_WAKEUP,
-                triggerAt,
-                15 * 60 * 1000L,
-                pendingIntent
-            )
-        }
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.setAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            nextTriggerMillis(reminder.startTime),
+            pendingIntent(context, reminder)
+        )
     }
 
     /** Cancels the alarm for a reminder. */
@@ -86,6 +70,7 @@ object ReminderScheduler {
 
     private fun pendingIntent(context: Context, reminder: ProgramReminder): PendingIntent {
         val intent = Intent(context, ReminderReceiver::class.java).apply {
+            putExtra(EXTRA_ID, reminder.id)
             putExtra(EXTRA_TITLE, reminder.programTitle)
             putExtra(EXTRA_TIME, reminder.startTime)
         }
@@ -102,17 +87,18 @@ object ReminderScheduler {
      * Next occurrence of "HH:MM": today if it is still in the future,
      * otherwise tomorrow (daily schedule).
      */
-    fun nextTriggerMillis(startTime: String): Long {
+    fun nextTriggerMillis(startTime: String, nowMillis: Long = System.currentTimeMillis()): Long {
         val parts = startTime.trim().split(":")
         val hour = parts.getOrNull(0)?.toIntOrNull() ?: 0
         val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-        val cal = Calendar.getInstance(TimeZone.getTimeZone("Africa/Algiers")).apply {
-            set(Calendar.HOUR_OF_DAY, hour.coerceIn(0, 23))
-            set(Calendar.MINUTE, minute.coerceIn(0, 59))
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        if (cal.timeInMillis <= System.currentTimeMillis() + 60_000) {
+        val cal = Calendar.getInstance().apply { timeInMillis = nowMillis }
+            .apply {
+                set(Calendar.HOUR_OF_DAY, hour.coerceIn(0, 23))
+                set(Calendar.MINUTE, minute.coerceIn(0, 59))
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+        if (cal.timeInMillis <= nowMillis) {
             cal.add(Calendar.DAY_OF_YEAR, 1)
         }
         return cal.timeInMillis
@@ -122,9 +108,56 @@ object ReminderScheduler {
 /** Fires the actual notification when a reminder alarm goes off. */
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        val pending = goAsync()
+        val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+        executor.execute {
+            try {
+                val reminderId = intent.getStringExtra(ReminderScheduler.EXTRA_ID)
+                if (!reminderId.isNullOrBlank()) {
+                    try {
+                        val db = com.elwataniatv.app.data.local.AppDatabase.getDatabase(context)
+                        val reminder = db.remindersDao().getReminderByIdSync(reminderId)
+                        if (reminder?.enabled != true) return@execute
+                        ReminderScheduler.schedule(context, reminder)
+                    } catch (error: Exception) {
+                        android.util.Log.w(
+                            "ReminderReceiver",
+                            "تعذر إعادة جدولة التذكير: ${error.message}"
+                        )
+                        val title = intent.getStringExtra(ReminderScheduler.EXTRA_TITLE)
+                        val time = intent.getStringExtra(ReminderScheduler.EXTRA_TIME)
+                        if (!title.isNullOrBlank() && !time.isNullOrBlank()) {
+                            runCatching {
+                                ReminderScheduler.schedule(
+                                    context,
+                                    ProgramReminder(
+                                        id = reminderId,
+                                        programTitle = title,
+                                        startTime = time,
+                                    ),
+                                )
+                            }.onFailure { scheduleError ->
+                                android.util.Log.w(
+                                    "ReminderReceiver",
+                                    "تعذر حفظ موعد التذكير التالي: ${scheduleError.message}",
+                                )
+                            }
+                        }
+                    }
+                }
+                postNotification(context, intent)
+            } finally {
+                executor.shutdown()
+                pending.finish()
+            }
+        }
+    }
+
+    private fun postNotification(context: Context, intent: Intent) {
         ReminderScheduler.ensureChannel(context)
-        val title = intent.getStringExtra("program_title") ?: context.getString(R.string.reminder_default_title)
-        val time = intent.getStringExtra("program_time").orEmpty()
+        val title = intent.getStringExtra(ReminderScheduler.EXTRA_TITLE)
+            ?: context.getString(R.string.reminder_default_title)
+        val time = intent.getStringExtra(ReminderScheduler.EXTRA_TIME).orEmpty()
 
         val contentIntent = PendingIntent.getActivity(
             context,
