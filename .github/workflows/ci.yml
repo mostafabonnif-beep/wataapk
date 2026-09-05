@@ -27,6 +27,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Create google-services.json from secret
+        run: |
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            printf '%s' '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+          else
+            echo "GOOGLE_SERVICES_JSON is not configured; using offline build mode."
+          fi
+
       - name: Install Firestore rules test dependencies
         run: npm ci --prefix rules-tests
 
@@ -75,13 +83,6 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-
-      - name: Create google-services.json from secret
-        run: |
-          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
-            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
-  
-          fi
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon

@@ -16,25 +16,37 @@ function fail(message) {
   process.exit(1);
 }
 
-const missingAllSecrets = !process.env.FIREBASE_WEB_API_KEY &&
-  !process.env.FIREBASE_WEB_APP_ID &&
-  !process.env.FIREBASE_WEB_MESSAGING_SENDER_ID;
-
-if (missingAllSecrets) {
-  console.warn(
-    "Building the admin artifact without Firebase web secrets; the panel will remain in offline/demo mode."
-  );
+function readAndroidFirebaseConfig() {
+  try {
+    const configPath = path.join(rootDir, "app", "google-services.json");
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const client = config.client?.[0];
+    const apiKey = client?.api_key?.[0]?.current_key;
+    const appId = client?.client_info?.mobilesdk_app_id;
+    const projectId = config.project_info?.project_id;
+    const messagingSenderId = config.project_info?.project_number;
+    if (!apiKey || !appId || !projectId || !messagingSenderId) return {};
+    return { apiKey, appId, projectId, messagingSenderId };
+  } catch {
+    return {};
+  }
 }
 
+const androidConfig = readAndroidFirebaseConfig();
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_WEB_API_KEY,
-  authDomain: process.env.FIREBASE_WEB_AUTH_DOMAIN || "elwataniatvapp.firebaseapp.com",
-  projectId: process.env.FIREBASE_WEB_PROJECT_ID || "elwataniatvapp",
-  storageBucket: process.env.FIREBASE_WEB_STORAGE_BUCKET || "elwataniatvapp.firebasestorage.app",
-  messagingSenderId: process.env.FIREBASE_WEB_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_WEB_APP_ID,
+  apiKey: process.env.FIREBASE_WEB_API_KEY || androidConfig.apiKey,
+  authDomain: process.env.FIREBASE_WEB_AUTH_DOMAIN || `${process.env.FIREBASE_WEB_PROJECT_ID || androidConfig.projectId || "elwataniatvapp"}.firebaseapp.com`,
+  projectId: process.env.FIREBASE_WEB_PROJECT_ID || androidConfig.projectId || "elwataniatvapp",
+  storageBucket: process.env.FIREBASE_WEB_STORAGE_BUCKET || `${process.env.FIREBASE_WEB_PROJECT_ID || androidConfig.projectId || "elwataniatvapp"}.firebasestorage.app`,
+  messagingSenderId: process.env.FIREBASE_WEB_MESSAGING_SENDER_ID || androidConfig.messagingSenderId,
+  appId: process.env.FIREBASE_WEB_APP_ID || androidConfig.appId,
   measurementId: process.env.FIREBASE_WEB_MEASUREMENT_ID || ""
 };
+
+const missingAllSecrets = !firebaseConfig.apiKey && !firebaseConfig.appId && !firebaseConfig.messagingSenderId;
+if (missingAllSecrets) {
+  console.warn("Building the admin artifact without Firebase web secrets; the panel will remain in offline/demo mode.");
+}
 
 const missingFirebaseFields = ["apiKey", "messagingSenderId", "appId"]
   .filter((field) => !firebaseConfig[field]);
