@@ -16,6 +16,21 @@ function fail(message) {
   process.exit(1);
 }
 
+function readWebFirebaseConfig() {
+  try {
+    const source = fs.readFileSync(path.join(rootDir, "admin", "firebase-config.js"), "utf8");
+    const match = source.match(/firebaseConfig\s*=\s*\{([\s\S]*?)\n\};/);
+    if (!match) return {};
+    const config = {};
+    for (const [, key, value] of match[1].matchAll(/(\w+)\s*:\s*"([^"]*)"/g)) {
+      config[key] = value;
+    }
+    return config;
+  } catch {
+    return {};
+  }
+}
+
 function readAndroidFirebaseConfig() {
   try {
     const configPath = path.join(rootDir, "app", "google-services.json");
@@ -32,16 +47,24 @@ function readAndroidFirebaseConfig() {
   }
 }
 
+const webConfig = readWebFirebaseConfig();
 const androidConfig = readAndroidFirebaseConfig();
+const firstDefined = (...values) => values.find((value) => value != null && value !== "");
+const projectId = firstDefined(process.env.FIREBASE_WEB_PROJECT_ID, webConfig.projectId, androidConfig.projectId, "elwataniatvapp");
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_WEB_API_KEY || androidConfig.apiKey,
-  authDomain: process.env.FIREBASE_WEB_AUTH_DOMAIN || `${process.env.FIREBASE_WEB_PROJECT_ID || androidConfig.projectId || "elwataniatvapp"}.firebaseapp.com`,
-  projectId: process.env.FIREBASE_WEB_PROJECT_ID || androidConfig.projectId || "elwataniatvapp",
-  storageBucket: process.env.FIREBASE_WEB_STORAGE_BUCKET || `${process.env.FIREBASE_WEB_PROJECT_ID || androidConfig.projectId || "elwataniatvapp"}.firebasestorage.app`,
-  messagingSenderId: process.env.FIREBASE_WEB_MESSAGING_SENDER_ID || androidConfig.messagingSenderId,
-  appId: process.env.FIREBASE_WEB_APP_ID || androidConfig.appId,
-  measurementId: process.env.FIREBASE_WEB_MEASUREMENT_ID || ""
+  apiKey: firstDefined(process.env.FIREBASE_WEB_API_KEY, webConfig.apiKey, androidConfig.apiKey),
+  authDomain: firstDefined(process.env.FIREBASE_WEB_AUTH_DOMAIN, webConfig.authDomain, `${projectId}.firebaseapp.com`),
+  projectId,
+  storageBucket: firstDefined(process.env.FIREBASE_WEB_STORAGE_BUCKET, webConfig.storageBucket, `${projectId}.firebasestorage.app`),
+  messagingSenderId: firstDefined(process.env.FIREBASE_WEB_MESSAGING_SENDER_ID, webConfig.messagingSenderId, androidConfig.messagingSenderId),
+  appId: firstDefined(process.env.FIREBASE_WEB_APP_ID, webConfig.appId, androidConfig.appId),
+  measurementId: firstDefined(process.env.FIREBASE_WEB_MEASUREMENT_ID, webConfig.measurementId, "")
 };
+
+// Firebase Auth rejects Android app ids on the web dashboard — refuse to ship one.
+if (firebaseConfig.appId && !String(firebaseConfig.appId).includes(":web:")) {
+  fail(`refusing to build: appId is not a web app id (${firebaseConfig.appId})`);
+}
 
 const missingAllSecrets = !firebaseConfig.apiKey && !firebaseConfig.appId && !firebaseConfig.messagingSenderId;
 if (missingAllSecrets) {
