@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Sports
 import androidx.compose.material.icons.filled.Theaters
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.elwataniatv.app.data.model.ArchiveProgram
+import com.elwataniatv.app.util.extractYouTubeVideoId
+import com.elwataniatv.app.util.isYouTubeVideoUrl
 
 const val ALL_CATEGORY = "__all__"
 
@@ -27,43 +29,8 @@ const val ALL_CATEGORY = "__all__"
  * ─────────────────────────────────────────────────────────────────
  */
 
-/** Whether the video URL is shaped like a playable YouTube / HTTP(S) link. */
-fun isValidVideoUrl(url: String): Boolean {
-    val trimmed = url.trim()
-    if (trimmed.isBlank()) return false
-    return trimmed.contains("youtube.com") || trimmed.contains("youtu.be") || trimmed.startsWith("http://") || trimmed.startsWith("https://")
-}
-
-/** Extracts the YouTube video id from watch / embed / short / youtu.be URLs. */
-fun extractYouTubeVideoId(url: String): String? {
-    if (url.isBlank()) return null
-    return try {
-        val trimmed = url.trim()
-        when {
-            trimmed.contains("youtu.be/") -> {
-                trimmed.substringAfter("youtu.be/").substringBefore("?").substringBefore("&").takeIf { it.isNotBlank() }
-            }
-            trimmed.contains("youtube.com/watch") -> {
-                val uri = java.net.URI(trimmed)
-                val query = uri.query ?: ""
-                query.split("&")
-                    .map { it.split("=") }
-                    .firstOrNull { it.size == 2 && it[0] == "v" }
-                    ?.get(1)
-                    ?.takeIf { it.isNotBlank() }
-            }
-            trimmed.contains("youtube.com/embed/") -> {
-                trimmed.substringAfter("youtube.com/embed/").substringBefore("?").substringBefore("&").takeIf { it.isNotBlank() }
-            }
-            trimmed.contains("youtube.com/v/") -> {
-                trimmed.substringAfter("youtube.com/v/").substringBefore("?").substringBefore("&").takeIf { it.isNotBlank() }
-            }
-            else -> null
-        }
-    } catch (e: Exception) {
-        null
-    }
-}
+/** Whether the archive item contains a playable YouTube video URL. */
+fun isValidVideoUrl(url: String): Boolean = isYouTubeVideoUrl(url)
 
 /**
  * Resolves the thumbnail to show: the stored thumbnail when it is an

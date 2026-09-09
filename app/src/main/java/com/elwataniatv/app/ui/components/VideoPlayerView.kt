@@ -58,6 +58,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.elwataniatv.app.data.model.RemoteStream
 import com.elwataniatv.app.data.model.nextFallbackStream
+import com.elwataniatv.app.util.youtubeEmbedUrl
 import com.elwataniatv.app.ui.theme.BrandAccent
 import com.elwataniatv.app.ui.theme.BrandPanel
 import com.elwataniatv.app.ui.theme.BrandPrimary
@@ -128,28 +129,6 @@ fun VideoPlayerView(
     val coroutineScope = rememberCoroutineScope()
 
     val isYouTube = type == "youtube" || type == "web" || url.contains("youtube.com") || url.contains("youtu.be") || url.contains("facebook.com") || url.contains("dailymotion.com")
-
-    // Helper to format YouTube and web URLs
-    fun getYouTubeEmbedUrl(inputUrl: String): String {
-        val trimmed = inputUrl.trim()
-        return when {
-            trimmed.contains("watch?v=") -> {
-                val videoId = trimmed.substringAfter("v=").substringBefore("&")
-                "https://www.youtube.com/embed/$videoId?autoplay=1&modestbranding=1&rel=0&enablejsapi=1&playsinline=1"
-            }
-            trimmed.contains("youtu.be/") -> {
-                val videoId = trimmed.substringAfter("youtu.be/").substringBefore("?")
-                "https://www.youtube.com/embed/$videoId?autoplay=1&modestbranding=1&rel=0&enablejsapi=1&playsinline=1"
-            }
-            trimmed.contains("youtube.com/live/") -> {
-                val videoId = trimmed.substringAfter("live/").substringBefore("?")
-                "https://www.youtube.com/embed/$videoId?autoplay=1&modestbranding=1&rel=0&enablejsapi=1&playsinline=1"
-            }
-            trimmed.contains("youtube.com/embed/") -> trimmed
-            trimmed.contains("youtube.com") -> trimmed
-            else -> trimmed
-        }
-    }
 
     // Single ExoPlayer instance tied to context & url (persists during fullscreen toggle)
     val exoPlayer = remember(playerContext, url, type) {
@@ -410,31 +389,9 @@ fun VideoPlayerView(
                         }
                     },
                     update = { webView ->
-                        val embedUrl = getYouTubeEmbedUrl(url)
-                        if (embedUrl.contains("youtube.com/embed/")) {
-                            val html = """
-                                <!DOCTYPE html>
-                                <html>
-                                <head>
-                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                                    <style>
-                                        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-                                        iframe { width: 100%; height: 100%; border: none; }
-                                    </style>
-                                </head>
-                                <body>
-                                    <iframe src="$embedUrl" 
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                                            allowfullscreen>
-                                    </iframe>
-                                </body>
-                                </html>
-                            """.trimIndent()
-                            webView.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null)
-                        } else {
-                            if (webView.url != embedUrl) {
-                                webView.loadUrl(embedUrl)
-                            }
+                        val targetUrl = youtubeEmbedUrl(url) ?: url.trim()
+                        if (targetUrl.isNotBlank() && webView.url != targetUrl) {
+                            webView.loadUrl(targetUrl)
                         }
                     }
                 )

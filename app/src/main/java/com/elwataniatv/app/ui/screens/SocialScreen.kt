@@ -7,8 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -535,56 +536,54 @@ fun SocialScreen(
             }
 
             else -> {
-                LazyColumn(
-                    contentPadding = PaddingValues(start = 14.dp, top = 8.dp, end = 14.dp, bottom = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 280.dp),
+                    contentPadding = PaddingValues(start = 14.dp, top = 12.dp, end = 14.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.testTag("social_list")
                 ) {
                     items(validSocialPages, key = { it.id }) { page ->
                         val platformColor = parsePlatformColor(page.platform, page.color)
                         val visualPlatformColor = if (normalizePlatformKey(page.platform) == "x") Color.White else platformColor
-                        val logoUrlToLoad = remember(page.logoUrl, page.platform, page.url) {
-                            deriveSocialLogoUrl(page)
-                        }
+                        val logoUrlToLoad = remember(page.logoUrl, page.platform, page.url) { deriveSocialLogoUrl(page) }
                         val contentDesc = stringResource(R.string.social_visit_page) + ": " + page.platform
                         val openFailedMessage = stringResource(R.string.social_open_failed)
                         val invalidUrlMessage = stringResource(R.string.social_invalid_url)
+                        val openPage: () -> Unit = {
+                            val safeUri = safeHttpUri(page.url)
+                            if (safeUri == null) {
+                                Toast.makeText(context, invalidUrlMessage, Toast.LENGTH_SHORT).show()
+                            } else {
+                                runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, safeUri))
+                                }.onFailure {
+                                    Toast.makeText(context, openFailedMessage, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
 
-                        Box(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(18.dp))
                                 .background(BrandPanel)
-                                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
-                                .clickable {
-                                    if (isValidSocialUrl(page.url)) {
-                                        try {
-                                            val safeUri = safeHttpUri(page.url)
-                                            if (safeUri == null) throw IllegalArgumentException("unsafe url")
-                                            val intent = Intent(Intent.ACTION_VIEW, safeUri)
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            Toast.makeText(context, openFailedMessage, Toast.LENGTH_SHORT).show()
-                                        }
-                                    } else {
-                                        Toast.makeText(context, invalidUrlMessage, Toast.LENGTH_SHORT).show()
-                                    }
-                                }
+                                .border(1.dp, visualPlatformColor.copy(alpha = 0.24f), RoundedCornerShape(18.dp))
                                 .semantics { contentDescription = contentDesc }
-                                .padding(horizontal = 12.dp, vertical = 7.dp)
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Platform Official Logo
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(visualPlatformColor.copy(alpha = 0.18f))
-                                        .border(1.dp, visualPlatformColor.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                                        .size(58.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(visualPlatformColor.copy(alpha = 0.16f))
+                                        .border(1.dp, visualPlatformColor.copy(alpha = 0.45f), RoundedCornerShape(16.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     PlatformIcon(
@@ -592,85 +591,60 @@ fun SocialScreen(
                                         logoUrl = logoUrlToLoad,
                                         contentDescription = contentDesc,
                                         tintColor = visualPlatformColor,
-                                        modifier = Modifier.size(26.dp)
+                                        modifier = Modifier.size(34.dp)
                                     )
                                 }
-
-                                // Platform Details
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                                Surface(
+                                    color = visualPlatformColor.copy(alpha = 0.16f),
+                                    shape = RoundedCornerShape(20.dp)
                                 ) {
                                     Row(
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                                     ) {
-                                        Surface(
-                                            color = visualPlatformColor.copy(alpha = 0.2f),
-                                            shape = RoundedCornerShape(6.dp)
-                                        ) {
-                                            Text(
-                                                text = page.platform.ifBlank { stringResource(R.string.tab_social) },
-                                                style = MaterialTheme.typography.labelSmall.copy(textDirection = TextDirection.ContentOrRtl),
-                                                color = visualPlatformColor,
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-
-                                        Icon(
-                                            imageVector = Icons.Default.Verified,
-                                            contentDescription = stringResource(R.string.social_official_page),
-                                            tint = visualPlatformColor,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-
-                                    Text(
-                                        text = page.name.ifBlank { page.platform.ifBlank { stringResource(R.string.tab_social) } },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        style = MaterialTheme.typography.titleSmall.copy(textDirection = TextDirection.ContentOrRtl),
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.End
-                                    )
-
-                                    if (page.description.isNotBlank()) {
+                                        Icon(Icons.Default.Verified, contentDescription = stringResource(R.string.social_official_page), tint = visualPlatformColor, modifier = Modifier.size(15.dp))
                                         Text(
-                                            text = page.description,
-                                            modifier = Modifier.fillMaxWidth(),
-                                            style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.ContentOrRtl),
-                                            color = Color.White.copy(alpha = 0.7f),
-                                            fontSize = 11.sp,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                            textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                            text = page.platform.ifBlank { stringResource(R.string.tab_social) },
+                                            style = MaterialTheme.typography.labelSmall.copy(textDirection = TextDirection.ContentOrRtl),
+                                            color = visualPlatformColor,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }
+                            }
 
-                                // Direct Link Action Button
-                                Surface(
-                                    color = visualPlatformColor.copy(alpha = 0.15f),
-                                    shape = CircleShape,
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, visualPlatformColor.copy(alpha = 0.4f))
-                                ) {
-                                    Box(
-                                        modifier = Modifier.padding(8.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                            contentDescription = stringResource(R.string.social_visit_page),
-                                            tint = visualPlatformColor,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
+                            Text(
+                                text = page.name.ifBlank { page.platform.ifBlank { stringResource(R.string.tab_social) } },
+                                modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.titleMedium.copy(textDirection = TextDirection.ContentOrRtl),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.End
+                            )
+                            Text(
+                                text = page.description.ifBlank { stringResource(R.string.social_visit_page) },
+                                modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.ContentOrRtl),
+                                color = Color.White.copy(alpha = 0.64f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.End
+                            )
+                            Button(
+                                onClick = openPage,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = visualPlatformColor),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 9.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = stringResource(R.string.social_visit_page), modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(stringResource(R.string.social_visit_page), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
