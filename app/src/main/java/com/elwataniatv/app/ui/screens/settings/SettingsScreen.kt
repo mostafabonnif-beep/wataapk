@@ -32,7 +32,7 @@ fun SettingsScreen(
     onUpdatePreferences: (Boolean, Boolean) -> Unit = { _, _ -> },
     onSubmitFeedback: (String, (Boolean, String?) -> Unit) -> Unit = { _, _ -> },
     onLanguageChange: (String) -> Unit = {},
-    onRequestNotificationPermission: () -> Unit = {},
+    onRequestNotificationPermission: (((Boolean) -> Unit) -> Unit) = {},
     appVersion: String = "",
     modifier: Modifier = Modifier
 ) {
@@ -40,7 +40,9 @@ fun SettingsScreen(
     var darkModeEnabled by remember(appConfig.enableDarkMode) { mutableStateOf(appConfig.enableDarkMode) }
     var pushNotificationsEnabled by remember(appConfig.enablePush) {
         mutableStateOf(
-            appConfig.enablePush && NotificationPreferencesStore.isGlobalEnabled(context)
+            appConfig.enablePush &&
+                NotificationPreferencesStore.isGlobalEnabled(context) &&
+                NotificationPreferencesStore.hasSystemPermission(context)
         )
     }
     var breakingNotificationsEnabled by remember {

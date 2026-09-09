@@ -48,6 +48,9 @@ class FcmMessageService : FirebaseMessagingService() {
             else -> CHANNEL_GENERAL
         }
 
+        // Keep each notification's PendingIntent distinct so tapping an older
+        // notification opens its own target instead of the newest one.
+        val notificationId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
         val intent = Intent(this, com.elwataniatv.app.MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("target_screen", message.data["target_screen"] ?: category)
@@ -56,7 +59,7 @@ class FcmMessageService : FirebaseMessagingService() {
         }
         val pendingIntent = android.app.PendingIntent.getActivity(
             this,
-            0,
+            notificationId,
             intent,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
@@ -72,9 +75,7 @@ class FcmMessageService : FirebaseMessagingService() {
             .build()
 
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        // Use a monotonic, always-positive id: raw millis overflow Int.
-        val notifId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
-        manager.notify(notifId, notification)
+        manager.notify(notificationId, notification)
     }
 
     override fun onNewToken(token: String) {
