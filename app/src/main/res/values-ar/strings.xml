@@ -342,10 +342,11 @@
     <string name="epg_cancel_reminder">إلغاء التذكير</string>
     <string name="breaking_news">عاجل</string>
     <string name="comment_reactions">تفاعلات المتابعين</string>
-    <string name="comments_read_only">التعليقات متاحة؛ عدادات التفاعل للعرض فقط.</string>
+    <string name="comments_read_only">شارك جمهور القناة رأيك حول البث المباشر.</string>
     <string name="comment_name_optional">اسمك (اختياري)</string>
     <string name="comment_write_hint">اكتب تعليقك…</string>
     <string name="send_comment">إرسال</string>
+    <string name="comment_send_failed">تعذر إرسال التعليق. حاول مرة أخرى.</string>
     <string name="be_first_comment">كن أول من يشارك بتعليق على هذا البث!</string>
     <string name="likes_count">الإعجابات: %1$d</string>
     <string name="close_player">إغلاق المشغل</string>

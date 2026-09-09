@@ -262,10 +262,11 @@
     <string name="epg_cancel_reminder">Annuler le rappel</string>
     <string name="breaking_news">Urgent</string>
     <string name="comment_reactions">Réactions des abonnés</string>
-    <string name="comments_read_only">Les commentaires sont disponibles ; les compteurs d\'interaction sont à titre indicatif.</string>
+    <string name="comments_read_only">Participez à la conversation autour du direct.</string>
     <string name="comment_name_optional">Votre nom (facultatif)</string>
     <string name="comment_write_hint">Écrire un commentaire…</string>
     <string name="send_comment">Envoyer</string>
+    <string name="comment_send_failed">Impossible d\'envoyer le commentaire. Réessayez.</string>
     <string name="be_first_comment">Soyez le premier à commenter ce direct.</string>
     <string name="likes_count">J\'aime : %1$d</string>
     <string name="close_player">Fermer le lecteur</string>
