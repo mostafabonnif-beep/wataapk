@@ -340,7 +340,7 @@ fun MainAppShell(
     val selectedStream by liveViewModel.selectedStream.collectAsState()
     val breaking by liveViewModel.breaking.collectAsState()
     val epgList by epgViewModel.epgList.collectAsState()
-    // val comments by liveViewModel.comments.collectAsState()
+    val comments by liveViewModel.comments.collectAsState()
     val reminders by epgViewModel.reminders.collectAsState(initial = emptyList())
 
     val websites by moreViewModel.websites.collectAsState()
@@ -367,6 +367,7 @@ fun MainAppShell(
     val shareLiveTemplate = stringResource(R.string.share_live_text)
     val shareAppLabel = stringResource(R.string.share_app)
     val shareAppTemplate = stringResource(R.string.share_app_text)
+    val commentSendFailed = stringResource(R.string.comment_send_failed)
     val forceUpdate = remember(appConfig.minVersion) {
         isVersionLessThan(BuildConfig.VERSION_NAME, appConfig.minVersion)
     }
@@ -480,6 +481,8 @@ fun MainAppShell(
                     adBanners = if (appConfig.showPromotionalBanners) adBanners else emptyList(),
                     newsItems = newsItems,
                     enableEpg = appConfig.enableEpg,
+                    enableComments = appConfig.enableComments,
+                    comments = comments,
                     inAppNotifications = inAppNotifications,
                     streamHealthState = streamHealthState,
                     syncError = syncError,
@@ -502,6 +505,19 @@ fun MainAppShell(
                         }
                         runCatching {
                             context.startActivity(Intent.createChooser(shareIntent, shareLiveLabel))
+                        }
+                    },
+                    onAddComment = { author, text ->
+                        liveViewModel.addComment(author, text) { success, _ ->
+                            if (!success) {
+                                runCatching {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        commentSendFailed,
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
                         }
                     },
                     onRetrySync = { viewModel.startFirebaseSync() }

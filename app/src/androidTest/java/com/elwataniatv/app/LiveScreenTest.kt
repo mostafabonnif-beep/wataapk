@@ -4,8 +4,10 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.elwataniatv.app.data.model.ArchiveProgram
+import com.elwataniatv.app.data.local.CommentEntity
 import com.elwataniatv.app.data.model.BreakingNews
 import com.elwataniatv.app.data.model.EpgItem
 import com.elwataniatv.app.data.model.RemoteStream
@@ -97,6 +99,45 @@ class LiveScreenTest {
     fun epgNextProgramCardIsVisible() {
         setLiveContent(epgList = listOf(EpgItem(id = "epg-test", startTime = "23:59", title = "برنامج تجريبي")))
         composeTestRule.onNodeWithTag("home_next_program").assertExists()
+    }
+
+    @Test
+    fun enabledCommentsRenderAndSubmitThroughCallback() {
+        var submittedAuthor = ""
+        var submittedText = ""
+        composeTestRule.setContent {
+            ElwataniaTVTheme {
+                LiveScreen(
+                    streams = emptyList(),
+                    selectedStream = null,
+                    breaking = BreakingNews(),
+                    epgList = emptyList(),
+                    reminders = emptyList(),
+                    comments = listOf(
+                        CommentEntity(
+                            remoteId = "comment-test",
+                            authorName = "متابع",
+                            content = "تعليق اختبار"
+                        )
+                    ),
+                    enableComments = true,
+                    onAddComment = { author, text ->
+                        submittedAuthor = author
+                        submittedText = text
+                    },
+                    onSelectStream = {},
+                    onToggleReminder = { _, _ -> }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("تعليق اختبار").assertExists()
+        composeTestRule.onNodeWithTag("comment_author_input").performTextInput("زائر")
+        composeTestRule.onNodeWithTag("comment_text_input").performTextInput("رأي ممتاز")
+        composeTestRule.onNodeWithTag("submit_comment_btn").performClick()
+
+        assertEquals("زائر", submittedAuthor)
+        assertEquals("رأي ممتاز", submittedText)
     }
 
     @Test

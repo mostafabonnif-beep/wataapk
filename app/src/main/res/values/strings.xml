@@ -302,10 +302,11 @@
     <string name="epg_cancel_reminder">Cancel reminder</string>
     <string name="breaking_news">Breaking</string>
     <string name="comment_reactions">Follower reactions</string>
-    <string name="comments_read_only">Comments are available; interaction counters are for display only.</string>
+    <string name="comments_read_only">Join the conversation around the live broadcast.</string>
     <string name="comment_name_optional">Your name (optional)</string>
     <string name="comment_write_hint">Write a comment…</string>
     <string name="send_comment">Send</string>
+    <string name="comment_send_failed">Could not send the comment. Please try again.</string>
     <string name="be_first_comment">Be the first to comment on this stream.</string>
     <string name="likes_count">Likes: %1$d</string>
     <string name="close_player">Close player</string>

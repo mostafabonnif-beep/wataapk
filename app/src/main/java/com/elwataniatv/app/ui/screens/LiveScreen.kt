@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.elwataniatv.app.R
 import com.elwataniatv.app.data.local.ProgramReminder
+import com.elwataniatv.app.data.local.CommentEntity
 import com.elwataniatv.app.data.model.AdBanner
 import com.elwataniatv.app.data.model.ArchiveProgram
 import com.elwataniatv.app.data.model.BreakingNews
@@ -69,6 +70,7 @@ import com.elwataniatv.app.data.remote.SyncStatus
 import com.elwataniatv.app.util.ContentSanitizer
 import com.elwataniatv.app.util.safeHttpUri
 import com.elwataniatv.app.ui.components.BreakingTicker
+import com.elwataniatv.app.ui.components.CommentSection
 import com.elwataniatv.app.ui.components.PremiumLiveHero
 import com.elwataniatv.app.ui.components.PremiumSectionHeader
 import com.elwataniatv.app.ui.components.EpgStrip
@@ -100,6 +102,8 @@ fun LiveScreen(
     newsItems: List<com.elwataniatv.app.data.model.NewsItem> = emptyList(),
     enableEpg: Boolean = true,
     inAppNotifications: List<com.elwataniatv.app.data.remote.InAppNotification> = emptyList(),
+    enableComments: Boolean = true,
+    comments: List<CommentEntity> = emptyList(),
     streamHealthState: StreamHealthState? = null,
     syncError: String? = null,
     syncStatus: SyncStatus? = null,
@@ -111,6 +115,7 @@ fun LiveScreen(
     onOpenYouTube: (String) -> Unit = {},
     onOpenNewsUrl: (String) -> Unit = {},
     onShareLive: (RemoteStream) -> Unit = {},
+    onAddComment: (String, String) -> Unit = { _, _ -> },
     onRetrySync: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -428,6 +433,16 @@ fun LiveScreen(
         }
 
 
+
+        if (enableComments) {
+            item {
+                CommentSection(
+                    comments = comments,
+                    onAddComment = onAddComment,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+        }
 
         // Breaking News Ticker with Animation
         if (breaking.enabled && breaking.text.isNotBlank()) {
