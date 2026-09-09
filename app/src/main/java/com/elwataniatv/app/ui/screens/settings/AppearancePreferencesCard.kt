@@ -56,7 +56,7 @@ fun AppearancePreferencesCard(
     programNotificationsEnabled: Boolean = true,
     streamNotificationsEnabled: Boolean = true,
     onNotificationCategoryChange: (String, Boolean) -> Unit = { _, _ -> },
-    onRequestNotificationPermission: () -> Unit = {}
+    onRequestNotificationPermission: (((Boolean) -> Unit) -> Unit) = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = BrandPanel),
@@ -133,10 +133,16 @@ fun AppearancePreferencesCard(
                 }
                 Switch(
                     checked = pushNotificationsEnabled,
-                    onCheckedChange = {
-                        if (it) onRequestNotificationPermission()
-                        onPushChange(it)
-                        onUpdatePreferences(darkModeEnabled, it)
+                    onCheckedChange = { enabled ->
+                        if (enabled) {
+                            onRequestNotificationPermission { granted ->
+                                onPushChange(granted)
+                                onUpdatePreferences(darkModeEnabled, granted)
+                            }
+                        } else {
+                            onPushChange(false)
+                            onUpdatePreferences(darkModeEnabled, false)
+                        }
                     },
                     modifier = Modifier.testTag("notifications_switch")
                 )

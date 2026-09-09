@@ -1,34 +1,12 @@
 package com.elwataniatv.app.ui.components
 
 import com.elwataniatv.app.data.model.EpgItem
+import com.elwataniatv.app.util.normalizeDigits
 import java.util.Calendar
 import java.util.TimeZone
 
 private val algeriaZone: TimeZone = TimeZone.getTimeZone("Africa/Algiers")
 private val durationPattern = Regex("(\\d+)")
-
-/**
- * Converts Eastern Arabic-Indic digits (٠-٩) and Extended Arabic-Indic /
- * Persian digits (۰-۹) to ASCII digits.
- *
- * Channel admins often type the EPG schedule on Arabic keyboard layouts, so
- * Firestore can hold values like "٢٠:٣٠" or "٦٠ دقيقة". Without this
- * normalization every parser below returns null and the guide silently shows
- * no current program, no countdown, and no progress bar.
- */
-internal fun normalizeDigits(value: String): String {
-    val builder = StringBuilder(value.length)
-    for (ch in value) {
-        builder.append(
-            when (ch) {
-                in '٠'..'٩' -> '0' + (ch - '٠')
-                in '۰'..'۹' -> '0' + (ch - '۰')
-                else -> ch
-            }
-        )
-    }
-    return builder.toString()
-}
 
 fun algeriaMinutesOfDay(): Int {
     val calendar = Calendar.getInstance(algeriaZone)

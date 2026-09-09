@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.foundation.background
@@ -38,6 +39,7 @@ import kotlinx.coroutines.withContext
 import com.elwataniatv.app.ui.components.GlobalErrorBoundary
 import com.elwataniatv.app.data.model.featuredArchivePreview
 import com.elwataniatv.app.notifications.NewContentNotifier
+import com.elwataniatv.app.notifications.NotificationPreferencesStore
 import com.elwataniatv.app.ui.components.AppBottomBar
 import com.elwataniatv.app.ui.components.AppTopBar
 import com.elwataniatv.app.ui.components.AppNavHost
@@ -118,6 +120,14 @@ class MainActivity : ComponentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()
     private val moreViewModel: MoreViewModel by viewModels()
     private val notificationsViewModel: NotificationsViewModel by viewModels()
+    private var notificationPermissionResult: ((Boolean) -> Unit)? = null
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val callback = notificationPermissionResult
+        notificationPermissionResult = null
+        callback?.invoke(granted)
+    }
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(com.elwataniatv.app.util.AppLanguage.wrapContext(newBase))
@@ -146,12 +156,15 @@ class MainActivity : ComponentActivity() {
         com.elwataniatv.app.util.PipController.onPipModeChanged(isInPictureInPictureMode)
     }
 
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+    private fun requestNotificationPermissionIfNeeded(onResult: (Boolean) -> Unit) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         ) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
+            onResult(true)
+            return
         }
+        notificationPermissionResult = onResult
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     /**
@@ -270,6 +283,12 @@ class MainActivity : ComponentActivity() {
                         viewModel.startFirebaseSync()
                     }
                 }
+                LaunchedEffect(appConfig.enablePush) {
+                    NotificationPreferencesStore.setRemoteGlobalEnabled(
+                        this@MainActivity,
+                        appConfig.enablePush
+                    )
+                }
                 GlobalErrorBoundary(
                     onRetrySync = {
                         viewModel.startFirebaseSync()
@@ -301,7 +320,9 @@ class MainActivity : ComponentActivity() {
                             moreViewModel = moreViewModel,
                             notificationsViewModel = notificationsViewModel,
                             onLanguageChange = { applyAppLanguage(this@MainActivity, it) },
-                            onRequestNotificationPermission = { requestNotificationPermissionIfNeeded() }
+                            onRequestNotificationPermission = { onResult ->
+                                requestNotificationPermissionIfNeeded(onResult)
+                            }
                         )
                     }
                 }
@@ -321,7 +342,7 @@ fun MainAppShell(
     moreViewModel: MoreViewModel,
     notificationsViewModel: NotificationsViewModel,
     onLanguageChange: (String) -> Unit = {},
-    onRequestNotificationPermission: () -> Unit = {}
+    onRequestNotificationPermission: (((Boolean) -> Unit) -> Unit) = {}
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()

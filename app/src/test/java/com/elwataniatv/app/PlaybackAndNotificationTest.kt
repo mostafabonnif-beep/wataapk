@@ -4,6 +4,7 @@ import com.elwataniatv.app.notifications.ReminderScheduler
 import java.util.Calendar
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -54,6 +55,44 @@ class PlaybackAndNotificationTest {
         assertEquals(sameDay.timeInMillis, ReminderScheduler.nextTriggerMillis("10:01", now.timeInMillis))
         assertEquals(nextDay.timeInMillis, ReminderScheduler.nextTriggerMillis("10:00", now.timeInMillis))
     }
+
+    @Test
+    fun reminderTrigger_normalizesArabicDigitsAndSeparators() {
+        val now = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.JANUARY, 1, 10, 0, 0)
+        }
+        val expected = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.JANUARY, 1, 20, 30, 0)
+        }
+
+        assertEquals(
+            expected.timeInMillis,
+            ReminderScheduler.nextTriggerMillis("٢٠：٣٠", now.timeInMillis)
+        )
+    }
+
+    @Test
+    fun reminderTrigger_doesNotTurnInvalidTimeIntoMidnight() {
+        val now = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.JANUARY, 1, 10, 0, 0)
+        }
+
+        assertEquals(
+            now.timeInMillis + 24 * 60 * 60 * 1000L,
+            ReminderScheduler.nextTriggerMillis("not-a-time", now.timeInMillis)
+        )
+    }
+    @Test
+    fun reminderNotifications_useDistinctPendingIntentCodes() {
+        assertNotEquals(
+            ReminderScheduler.requestCodeFor("morning-show"),
+            ReminderScheduler.requestCodeFor("evening-news")
+        )
+    }
+
 
     @Test
     fun exponentialBackoff_calculatesBoundedDelays() {

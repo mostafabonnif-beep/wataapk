@@ -10,6 +10,7 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.elwataniatv.app.R
 import com.elwataniatv.app.data.local.ProgramReminder
+import com.elwataniatv.app.util.normalizeDigits
 import java.util.Calendar
 
 /**
@@ -74,7 +75,7 @@ object ReminderScheduler {
             putExtra(EXTRA_TITLE, reminder.programTitle)
             putExtra(EXTRA_TIME, reminder.startTime)
         }
-        val requestCode = REQUEST_CODE_BASE + Math.floorMod(reminder.id.hashCode(), 100_000)
+        val requestCode = requestCodeFor(reminder.id)
         return PendingIntent.getBroadcast(
             context,
             requestCode,
@@ -83,18 +84,27 @@ object ReminderScheduler {
         )
     }
 
+    internal fun requestCodeFor(reminderId: String): Int =
+        REQUEST_CODE_BASE + Math.floorMod(reminderId.hashCode(), 100_000)
+
     /**
      * Next occurrence of "HH:MM": today if it is still in the future,
      * otherwise tomorrow (daily schedule).
      */
     fun nextTriggerMillis(startTime: String, nowMillis: Long = System.currentTimeMillis()): Long {
-        val parts = startTime.trim().split(":")
-        val hour = parts.getOrNull(0)?.toIntOrNull() ?: 0
-        val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val normalized = normalizeDigits(startTime)
+            .replace('：', ':')
+            .replace('∶', ':')
+        val parts = normalized.trim().split(":")
+        val hour = parts.getOrNull(0)?.trim()?.toIntOrNull()
+        val minute = parts.getOrNull(1)?.trim()?.toIntOrNull()
+        if (parts.size != 2 || hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            return nowMillis + 24 * 60 * 60 * 1000L
+        }
         val cal = Calendar.getInstance().apply { timeInMillis = nowMillis }
             .apply {
-                set(Calendar.HOUR_OF_DAY, hour.coerceIn(0, 23))
-                set(Calendar.MINUTE, minute.coerceIn(0, 59))
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
             }
@@ -159,9 +169,10 @@ class ReminderReceiver : BroadcastReceiver() {
             ?: context.getString(R.string.reminder_default_title)
         val time = intent.getStringExtra(ReminderScheduler.EXTRA_TIME).orEmpty()
 
+        val reminderId = intent.getStringExtra(ReminderScheduler.EXTRA_ID).orEmpty()
         val contentIntent = PendingIntent.getActivity(
             context,
-            0,
+            if (reminderId.isNotBlank()) ReminderScheduler.requestCodeFor(reminderId) else 0,
             Intent(context, com.elwataniatv.app.MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("target_screen", "live")

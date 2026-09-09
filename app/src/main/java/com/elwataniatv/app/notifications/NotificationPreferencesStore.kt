@@ -1,6 +1,10 @@
 package com.elwataniatv.app.notifications
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 
 /**
  * Local notification preferences used by FCM before a message is shown.
@@ -15,13 +19,16 @@ object NotificationPreferencesStore {
 
     private const val PREFS = "notification_preferences"
     private const val KEY_GLOBAL = "global_enabled"
+    private const val KEY_REMOTE_GLOBAL = "remote_global_enabled"
     private const val KEY_BREAKING = "breaking_enabled"
     private const val KEY_PROGRAM = "program_enabled"
     private const val KEY_STREAM = "stream_enabled"
 
-    fun isGlobalEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_GLOBAL, true)
+    fun isGlobalEnabled(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_GLOBAL, true) &&
+            prefs.getBoolean(KEY_REMOTE_GLOBAL, true)
+    }
 
     fun setGlobalEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -30,9 +37,23 @@ object NotificationPreferencesStore {
             .apply()
     }
 
+    fun setRemoteGlobalEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_REMOTE_GLOBAL, enabled)
+            .apply()
+    }
+
+    fun hasSystemPermission(context: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
     fun isCategoryEnabled(context: Context, category: String): Boolean {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (!prefs.getBoolean(KEY_GLOBAL, true)) return false
+        if (!isGlobalEnabled(context) || !hasSystemPermission(context)) return false
         return when (category.lowercase()) {
             CATEGORY_BREAKING -> prefs.getBoolean(KEY_BREAKING, true)
             CATEGORY_PROGRAM -> prefs.getBoolean(KEY_PROGRAM, true)
