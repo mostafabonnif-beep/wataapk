@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CalendarToday
@@ -97,6 +98,7 @@ import com.elwataniatv.app.ui.theme.BrandBorder
 import com.elwataniatv.app.ui.theme.BrandPanel
 import com.elwataniatv.app.ui.theme.BrandPrimary
 import com.elwataniatv.app.ui.theme.BrandPillBg
+import com.elwataniatv.app.util.safeHttpUri
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -363,6 +365,34 @@ fun ArchiveScreen(
                             onSaveWatchProgress(prog, savedPos, savedDur)
                         }
                     )
+                    OutlinedButton(
+                        onClick = {
+                            val safeUri = safeHttpUri(prog.youtubeUrl)
+                            if (safeUri == null) {
+                                Toast.makeText(context, context.getString(R.string.archive_video_unavailable), Toast.LENGTH_SHORT).show()
+                            } else {
+                                runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, safeUri))
+                                }.onFailure {
+                                    Toast.makeText(context, context.getString(R.string.browser_external_error), Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        border = BorderStroke(1.dp, BrandAccent.copy(alpha = 0.65f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandAccent),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = stringResource(R.string.open_external_browser),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.open_external_browser), fontSize = 12.sp)
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -546,7 +576,7 @@ fun ArchiveScreen(
 
             else -> {
                 LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 360.dp),
+                    columns = GridCells.Adaptive(minSize = 300.dp),
                     contentPadding = PaddingValues(start = 14.dp, top = 10.dp, end = 14.dp, bottom = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),

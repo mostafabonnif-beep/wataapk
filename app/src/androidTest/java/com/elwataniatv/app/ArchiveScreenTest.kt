@@ -46,6 +46,13 @@ class ArchiveScreenTest {
     }
 
     @Test
+    fun tappingArchiveThumbnailOpensPlayerWithExternalFallback() {
+        composeTestRule.setContent { ArchiveContent() }
+        composeTestRule.onNodeWithTag("archive_play_news").performClick()
+        composeTestRule.onNodeWithText("Open in external browser").assertExists()
+    }
+
+    @Test
     fun categoryFilterHidesOtherCategories() {
         composeTestRule.setContent { ArchiveContent() }
         composeTestRule.onNodeWithText("أخبار").performClick()

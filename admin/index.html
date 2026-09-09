@@ -1463,6 +1463,7 @@ async function mountArchivePane() {
       <div class="bg-slate-900/40 p-3 rounded-xl border border-brand-border flex items-center">
         <input type="text" id="archiveSearch" placeholder="🔍 ابحث في عناوين الأرشيف أو الأقسام..." class="bg-slate-900 border-none ring-0 focus:ring-1 focus:ring-brand-primary" />
       </div>
+      <div id="archiveHealthNotice" class="hidden rounded-xl border px-4 py-3 text-xs font-bold"></div>
       
       <div class="overflow-x-auto">
         <table class="w-full">
@@ -1519,6 +1520,15 @@ async function mountArchivePane() {
   const renderArchive = (filterText = "") => {
     const tbody = $("#archiveTableBody");
     tbody.innerHTML = "";
+    const healthNotice = $("#archiveHealthNotice");
+    const incompleteCount = allArchive.filter(item => !extractYoutubeId(item.youtubeUrl ?? "")).length;
+    if (incompleteCount > 0) {
+      healthNotice.className = "rounded-xl border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-xs font-bold text-amber-200";
+      healthNotice.textContent = `تنبيه جودة المحتوى: ${incompleteCount} فيديو يحتاج رابط YouTube صالحاً قبل أن يفتح داخل التطبيق.`;
+    } else {
+      healthNotice.className = "hidden rounded-xl border px-4 py-3 text-xs font-bold";
+      healthNotice.textContent = "";
+    }
     const filtered = allArchive.filter(d => 
       d.title.toLowerCase().includes(filterText.toLowerCase()) || 
       (d.category ?? "").toLowerCase().includes(filterText.toLowerCase())
@@ -1545,7 +1555,7 @@ async function mountArchivePane() {
         <td class="text-center font-mono text-xs text-slate-300">${escapeHtml(docData.duration ?? "")}</td>
         <td class="text-center text-xs text-slate-400 font-mono">${escapeHtml(docData.date ?? "")}</td>
         <td class="text-center"><span class="text-xs font-bold ${docData.isBreaking ? 'text-red-400' : 'text-slate-400'}">${docData.isBreaking ? 'عاجل' : '#' + Number(docData.editorialPriority ?? 0)}</span></td>
-        <td class="text-center"><a href="${escapeAttr(docData.youtubeUrl)}" target="_blank" class="text-red-400 font-mono text-xs hover:underline inline-flex items-center gap-1">🎥 يوتيوب</a></td>
+        <td class="text-center">${extractYoutubeId(docData.youtubeUrl ?? "") ? `<a href="${escapeAttr(docData.youtubeUrl)}" target="_blank" rel="noopener" class="text-red-400 font-mono text-xs hover:underline inline-flex items-center gap-1">🎥 يوتيوب</a>` : `<span class="text-amber-300 text-[10px] font-bold">⚠️ رابط ناقص</span>`}</td>
         <td class="text-center"><span class="status-dot ${archiveStatus === 'منشور' ? 'status-on' : 'status-off'}"></span><span class="text-xs ${archiveStatusClass}">${escapeHtml(archiveStatus)}</span></td>
         <td>
           <div class="flex items-center justify-end gap-2">
