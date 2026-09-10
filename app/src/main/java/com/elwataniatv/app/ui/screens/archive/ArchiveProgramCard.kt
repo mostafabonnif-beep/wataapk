@@ -273,10 +273,10 @@ fun ArchiveProgramCard(
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                IconButton(onClick = onShare, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onShare, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = Color.White.copy(alpha = 0.72f), modifier = Modifier.size(18.dp))
                 }
-                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(48.dp)) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
                         contentDescription = stringResource(R.string.favorites),

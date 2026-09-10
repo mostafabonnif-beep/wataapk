@@ -565,6 +565,7 @@ fun LiveScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
+                            .heightIn(min = 48.dp)
                             .clickable { onOpenArchive() },
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -655,6 +656,7 @@ private fun HomeNextProgramCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = 48.dp)
                 .clickable { onOpenGuide() },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -958,8 +960,9 @@ private fun HomeLatestNewsSection(
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
+                    .heightIn(min = 48.dp)
                     .clickable { onOpenYouTube(firstVideoUrl) }
-                    .padding(horizontal = 4.dp, vertical = 4.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
                     .semantics { contentDescription = openNewsDescription },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
