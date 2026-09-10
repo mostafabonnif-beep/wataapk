@@ -2,7 +2,7 @@
 
 **Last updated:** September 10, 2026
 **Repository:** `mostafabonnif-beep/wataapk`
-**Current verified main:** `6cb790a` before the v8.6.0 release-candidate bump
+**Current verified main:** `3983e65`
 
 This file is the durable handoff for the next maintainer or assistant. It records what was actually changed and what remains blocked. It is not a substitute for live verification of GitHub, Firebase, Play Console, or hosting state.
 
