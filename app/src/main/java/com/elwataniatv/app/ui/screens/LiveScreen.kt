@@ -133,13 +133,23 @@ fun LiveScreen(
     )
 
     var isRefreshing by remember { mutableStateOf(false) }
+    var refreshStartedAt by remember { mutableLongStateOf(0L) }
     var switchingStreamId by remember { mutableStateOf<String?>(null) }
     val streamRowState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
-            delay(800L)
+            delay(12_000L)
             isRefreshing = false
+        }
+    }
+    LaunchedEffect(syncStatus?.lastUpdatedAt, syncStatus?.errorMessage) {
+        if (isRefreshing) {
+            val updatedAt = syncStatus?.lastUpdatedAt ?: 0L
+            val failed = !syncStatus?.errorMessage.isNullOrBlank()
+            if (failed || (refreshStartedAt in 1 until updatedAt + 1)) {
+                isRefreshing = false
+            }
         }
     }
     LaunchedEffect(selectedStream?.id) {
@@ -151,6 +161,7 @@ fun LiveScreen(
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = {
+            refreshStartedAt = System.currentTimeMillis()
             isRefreshing = true
             onRetrySync()
         },

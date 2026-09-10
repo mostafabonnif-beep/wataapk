@@ -64,11 +64,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,6 +93,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.SubcomposeAsyncImage
 import com.elwataniatv.app.data.local.FavoriteProgram
 import com.elwataniatv.app.data.model.ArchiveProgram
+import com.elwataniatv.app.data.remote.SyncStatus
 import com.elwataniatv.app.ui.components.VideoPlayerView
 import com.elwataniatv.app.ui.screens.archive.ALL_CATEGORY
 import com.elwataniatv.app.ui.theme.BrandAccent
@@ -120,11 +123,12 @@ fun ArchiveScreen(
     onToggleFavorite: (ArchiveProgram, Boolean) -> Unit,
     onSaveWatchProgress: (ArchiveProgram, Long, Long) -> Unit = { _, _, _ -> },
     onRetrySync: (() -> Unit)? = null,
+    syncStatus: SyncStatus? = null,
     isLoading: Boolean = false,
     hasError: Boolean = false
 ) {
-    var playingProgram by remember { mutableStateOf<ArchiveProgram?>(null) }
-    var selectedDetailsProgram by remember { mutableStateOf<ArchiveProgram?>(null) }
+    var playingProgram by rememberSaveable { mutableStateOf<ArchiveProgram?>(null) }
+    var selectedDetailsProgram by rememberSaveable { mutableStateOf<ArchiveProgram?>(null) }
     val context = LocalContext.current
 
     // Dynamically extract categories from real data to avoid showing static empty category filters
@@ -132,20 +136,32 @@ fun ArchiveScreen(
 
     // Sort programs by date or created order from newest to oldest
     val sortedPrograms = remember(programs) { sortArchivePrograms(programs) }
-    var isRefreshing by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
-    val refreshScope = rememberCoroutineScope()
+    var isRefreshing by remember { mutableStateOf(false) }
+    var refreshStartedAt by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            delay(12_000L)
+            isRefreshing = false
+        }
+    }
+    LaunchedEffect(syncStatus?.lastUpdatedAt, syncStatus?.errorMessage) {
+        if (isRefreshing) {
+            val updatedAt = syncStatus?.lastUpdatedAt ?: 0L
+            val failed = !syncStatus?.errorMessage.isNullOrBlank()
+            if (failed || (refreshStartedAt in 1 until updatedAt + 1)) {
+                isRefreshing = false
+            }
+        }
+    }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = {
             if (!isRefreshing) {
+                refreshStartedAt = System.currentTimeMillis()
                 isRefreshing = true
                 onRetrySync?.invoke()
-                refreshScope.launch {
-                    delay(800L)
-                    isRefreshing = false
-                }
             }
         },
         state = pullToRefreshState,
