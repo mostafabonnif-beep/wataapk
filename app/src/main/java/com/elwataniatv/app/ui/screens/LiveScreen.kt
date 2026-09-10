@@ -26,14 +26,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -136,7 +135,6 @@ fun LiveScreen(
     var refreshStartedAt by remember { mutableLongStateOf(0L) }
     var switchingStreamId by remember { mutableStateOf<String?>(null) }
     val streamRowState = rememberLazyListState()
-    val pullToRefreshState = rememberPullToRefreshState()
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
             delay(12_000L)
@@ -158,16 +156,15 @@ fun LiveScreen(
         if (selectedIndex >= 0) streamRowState.animateScrollToItem(selectedIndex)
     }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = {
+    val requestRefresh = {
+        if (!isRefreshing) {
             refreshStartedAt = System.currentTimeMillis()
             isRefreshing = true
             onRetrySync()
-        },
-        state = pullToRefreshState,
-        modifier = modifier.fillMaxSize()
-    ) {
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -175,6 +172,42 @@ fun LiveScreen(
             verticalArrangement = Arrangement.spacedBy(9.dp),
         contentPadding = PaddingValues(top = 2.dp, bottom = 96.dp)
     ) {
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = requestRefresh,
+                    enabled = !isRefreshing
+                ) {
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = BrandAccent,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.refresh_data),
+                            tint = BrandAccent,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.refresh_data),
+                        color = BrandAccent,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
         // Sync status: prefer the richer SyncStatusCard (connection state + last update
         // time + retry action) when available; fall back to the simple offline banner
         // if the view model hasn't produced a SyncStatus yet.
