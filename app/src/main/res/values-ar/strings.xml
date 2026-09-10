@@ -132,7 +132,9 @@
     <string name="stream_channels">قنوات البث</string>
     <string name="playing_now">قيد التشغيل</string>
     <string name="archive_title">أرشيف الوطنية TV</string>
-    <string name="archive_subtitle">برامج ونشرات يمكنك العودة إليها في أي وقت</string>
+    <string name="archive_subtitle">البرامج والنشرات التي يمكنك الرجوع إليها في أي وقت</string>
+    <string name="continue_watching_title">تابع المشاهدة</string>
+    <string name="continue_watching_subtitle">أكمل من حيث توقفت</string>
     <plurals name="archive_program_count">
         <item quantity="zero">لا توجد برامج</item>
         <item quantity="one">برنامج واحد</item>
@@ -274,6 +276,7 @@
     <string name="browser_load_error_title">تعذر تحميل الموقع الإلكتروني</string>
     <string name="browser_load_error_message">يرجى التأكد من الاتصال بالإنترنت وصحة رابط الموقع.</string>
     <string name="open_program">فتح %1$s — %2$s</string>
+    <string name="resume_program">استئناف %1$s — تمت مشاهدة %2$d٪</string>
     <string name="play_video">تشغيل الفيديو</string>
     <string name="video">فيديو</string>
     <string name="published_date">تاريخ النشر</string>

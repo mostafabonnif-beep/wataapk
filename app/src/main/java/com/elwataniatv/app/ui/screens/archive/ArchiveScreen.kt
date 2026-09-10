@@ -83,6 +83,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.elwataniatv.app.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -146,6 +148,16 @@ fun ArchiveScreen(
 
     // Sort programs by date or created order from newest to oldest
     val sortedPrograms = remember(programs) { sortArchivePrograms(programs) }
+    val continueWatching = remember(programs, watchHistory) {
+        watchHistory
+            .sortedByDescending { it.updatedAt }
+            .mapNotNull { historyItem ->
+                val program = programs.firstOrNull { it.id == historyItem.id } ?: return@mapNotNull null
+                val position = resumePositionMs(listOf(historyItem), historyItem.id)
+                if (position > 0L) program to historyItem else null
+            }
+            .take(6)
+    }
     val pullToRefreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
     var refreshStartedAt by remember { mutableLongStateOf(0L) }
@@ -353,6 +365,139 @@ fun ArchiveScreen(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (continueWatching.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 14.dp, top = 12.dp, end = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = stringResource(R.string.continue_watching_title),
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.End
+                        )
+                        Text(
+                            text = stringResource(R.string.continue_watching_subtitle),
+                            color = Color.White.copy(alpha = 0.55f),
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.End
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.PlayCircle,
+                        contentDescription = null,
+                        tint = BrandAccent,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.testTag("continue_watching_row")
+                ) {
+                    items(continueWatching, key = { it.first.id }) { (program, historyItem) ->
+                        val progressFraction = if (historyItem.durationMs > 0L) {
+                            (historyItem.positionMs.toFloat() / historyItem.durationMs.toFloat()).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        }
+                        val progressPercent = (progressFraction * 100).toInt()
+                        val resumeDescription = stringResource(
+                            R.string.resume_program,
+                            program.title,
+                            progressPercent
+                        )
+                        Column(
+                            modifier = Modifier
+                                .width(220.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(BrandPanel.copy(alpha = 0.82f))
+                                .clickable { startProgram(program) }
+                                .semantics {
+                                    contentDescription = resumeDescription
+                                }
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(112.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(BrandPrimary.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val thumbnail = deriveThumbnailUrl(program.thumbnailUrl, program.youtubeUrl)
+                                if (thumbnail.isNotBlank()) {
+                                    SubcomposeAsyncImage(
+                                        model = thumbnail,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = 0.36f))
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.PlayCircle,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                if (progressFraction > 0f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 7.dp)
+                                            .height(4.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(Color.White.copy(alpha = 0.32f))
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(progressFraction)
+                                                .fillMaxSize()
+                                                .background(BrandAccent)
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = program.title,
+                                style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.ContentOrRtl),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = if (progressPercent > 0) "$progressPercent%" else program.category,
+                                color = BrandAccent,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }

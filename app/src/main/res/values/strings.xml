@@ -117,6 +117,8 @@
     <string name="playing_now">Playing now</string>
     <string name="archive_title">Elwatania TV Archive</string>
     <string name="archive_subtitle">Programmes and bulletins you can revisit anytime</string>
+    <string name="continue_watching_title">Continue watching</string>
+    <string name="continue_watching_subtitle">Pick up where you stopped</string>
     <plurals name="archive_program_count">
         <item quantity="one">%1$d program</item>
         <item quantity="other">%1$d programs</item>
@@ -250,6 +252,7 @@
     <string name="browser_load_error_title">Could not load the website</string>
     <string name="browser_load_error_message">Check your internet connection and the website address.</string>
     <string name="open_program">Open %1$s — %2$s</string>
+    <string name="resume_program">Resume %1$s — %2$d%% watched</string>
     <string name="play_video">Play video</string>
     <string name="video">Video</string>
     <string name="published_date">Published date</string>

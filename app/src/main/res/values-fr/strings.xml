@@ -100,7 +100,7 @@
     <string name="stream_channels">Chaînes de diffusion</string>
     <string name="playing_now">En cours de diffusion</string>
     <string name="archive_title">Archive d\'Elwatania TV</string>
-    <string name="archive_subtitle">Programmes et bulletins à revoir à tout moment</string>
+    <string name="archive_subtitle">Programmes et bulletins à revoir quand vous voulez</string>
     <string name="archive_search_hint">Rechercher un programme, un bulletin ou une couverture…</string>
     <string name="all_categories">Toutes</string>
     <string name="search">Rechercher</string>
@@ -387,4 +387,7 @@
     <string name="new_content_channel_description">Alertes lors de la publication de contenu éditorial</string>
     <string name="new_content_notification_title">Nouveau contenu d’Elwatania TV</string>
     <string name="new_content_notification_summary">%1$s et %2$d autres nouveaux éléments</string>
+    <string name="continue_watching_title">Reprendre la lecture</string>
+    <string name="continue_watching_subtitle">Reprenez là où vous vous êtes arrêté</string>
+    <string name="resume_program">Reprendre %1$s — %2$d%% regardé</string>
 </resources>
