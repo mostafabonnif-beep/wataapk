@@ -259,14 +259,14 @@ fun ArchiveProgramCard(
                 ) {
                     if (program.date.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.published_date), tint = Color.White.copy(alpha = 0.42f), modifier = Modifier.size(12.dp))
-                            Text(program.date, style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.published_date), tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(12.dp))
+                            Text(program.date, style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl), color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                     if (program.duration.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Default.AccessTime, contentDescription = stringResource(R.string.duration), tint = Color.White.copy(alpha = 0.42f), modifier = Modifier.size(12.dp))
-                            Text(program.duration, style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Icon(Icons.Default.AccessTime, contentDescription = stringResource(R.string.duration), tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(12.dp))
+                            Text(program.duration, style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl), color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -280,7 +280,7 @@ fun ArchiveProgramCard(
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
                         contentDescription = stringResource(R.string.favorites),
-                        tint = if (isFavorite) BrandAccent else Color.White.copy(alpha = 0.55f),
+                        tint = if (isFavorite) BrandAccent else Color.White.copy(alpha = 0.75f),
                         modifier = Modifier.size(20.dp)
                     )
                 }

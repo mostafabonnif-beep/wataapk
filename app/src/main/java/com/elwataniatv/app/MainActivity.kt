@@ -555,7 +555,8 @@ fun MainAppShell(
                     onSearchQueryChange = { archiveViewModel.updateSearchQuery(it) },
                     onToggleFavorite = { program, isFav -> archiveViewModel.toggleFavorite(program, isFav) },
                     onSaveWatchProgress = { program, pos, dur -> archiveViewModel.saveWatchProgress(program, pos, dur) },
-                    onRetrySync = { viewModel.startFirebaseSync() }
+                    onRetrySync = { viewModel.startFirebaseSync() },
+                    syncStatus = viewModel.syncStatus.collectAsState().value
                 )
             }
 
@@ -570,7 +571,8 @@ fun MainAppShell(
                     onSearchQueryChange = { archiveViewModel.updateSearchQuery(it) },
                     onToggleFavorite = { program, isFav -> archiveViewModel.toggleFavorite(program, isFav) },
                     onSaveWatchProgress = { program, pos, dur -> archiveViewModel.saveWatchProgress(program, pos, dur) },
-                    onRetrySync = { viewModel.startFirebaseSync() }
+                    onRetrySync = { viewModel.startFirebaseSync() },
+                    syncStatus = viewModel.syncStatus.collectAsState().value
                 )
             }
 
