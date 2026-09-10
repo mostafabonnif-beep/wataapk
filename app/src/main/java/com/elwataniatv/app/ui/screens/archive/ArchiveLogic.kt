@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Sports
 import androidx.compose.material.icons.filled.Theaters
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.elwataniatv.app.data.model.ArchiveProgram
+import com.elwataniatv.app.data.local.WatchHistoryItem
 import com.elwataniatv.app.util.extractYouTubeVideoId
 import com.elwataniatv.app.util.isYouTubeVideoUrl
 
@@ -78,3 +79,13 @@ fun extractAvailableCategories(programs: List<ArchiveProgram>): List<String> {
 /** Programs sorted from newest to oldest by date. */
 fun sortArchivePrograms(programs: List<ArchiveProgram>): List<ArchiveProgram> =
     programs.sortedByDescending { it.date }
+
+/** Returns a useful unfinished position, or zero when the item should start over. */
+fun resumePositionMs(history: List<WatchHistoryItem>, programId: String): Long {
+    val item = history.firstOrNull { it.id == programId } ?: return 0L
+    val position = item.positionMs.coerceAtLeast(0L)
+    val duration = item.durationMs.coerceAtLeast(0L)
+    return position.takeIf {
+        it > 10_000L && (duration <= 0L || it < duration - 5_000L)
+    } ?: 0L
+}

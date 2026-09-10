@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.SubcomposeAsyncImage
 import com.elwataniatv.app.data.local.FavoriteProgram
+import com.elwataniatv.app.data.local.WatchHistoryItem
 import com.elwataniatv.app.data.model.ArchiveProgram
 import com.elwataniatv.app.data.remote.SyncStatus
 import com.elwataniatv.app.ui.components.VideoPlayerView
@@ -123,14 +124,22 @@ fun ArchiveScreen(
     onSearchQueryChange: (String) -> Unit,
     onToggleFavorite: (ArchiveProgram, Boolean) -> Unit,
     onSaveWatchProgress: (ArchiveProgram, Long, Long) -> Unit = { _, _, _ -> },
+    watchHistory: List<WatchHistoryItem> = emptyList(),
     onRetrySync: (() -> Unit)? = null,
     syncStatus: SyncStatus? = null,
     isLoading: Boolean = false,
     hasError: Boolean = false
 ) {
     var playingProgram by rememberSaveable { mutableStateOf<ArchiveProgram?>(null) }
+    var playingInitialPositionMs by rememberSaveable { mutableLongStateOf(0L) }
     var selectedDetailsProgram by rememberSaveable { mutableStateOf<ArchiveProgram?>(null) }
     val context = LocalContext.current
+
+    fun startProgram(program: ArchiveProgram) {
+        playingInitialPositionMs = resumePositionMs(watchHistory, program.id)
+        selectedDetailsProgram = null
+        playingProgram = program
+    }
 
     // Dynamically extract categories from real data to avoid showing static empty category filters
     val availableCategories = remember(programs) { extractAvailableCategories(programs) }
@@ -371,6 +380,7 @@ fun ArchiveScreen(
                         url = prog.youtubeUrl,
                         type = "youtube",
                         title = prog.title,
+                        initialPositionMs = playingInitialPositionMs,
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(16f / 9f),
@@ -604,14 +614,19 @@ fun ArchiveScreen(
                 ) {
                     items(sortedPrograms, key = { it.id }) { prog ->
                         val isFav = favorites.any { it.id == prog.id }
+                        val historyItem = watchHistory.firstOrNull { it.id == prog.id }
+                        val watchProgressFraction = if (historyItem != null && historyItem.durationMs > 0L) {
+                            (historyItem.positionMs.toFloat() / historyItem.durationMs.toFloat()).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        }
 
                         ArchiveProgramCard(
                             program = prog,
                             isFavorite = isFav,
                             onPlay = {
                                 if (isValidVideoUrl(prog.youtubeUrl)) {
-                                    onSaveWatchProgress(prog, 0L, 0L)
-                                    playingProgram = prog
+                                    startProgram(prog)
                                 } else {
                                     Toast.makeText(context, context.getString(R.string.archive_video_unavailable), Toast.LENGTH_SHORT).show()
                                 }
@@ -634,7 +649,8 @@ fun ArchiveScreen(
                                     type = "text/plain"
                                 }
                                 context.startActivity(Intent.createChooser(sendIntent, context.getString(R.string.share_program)))
-                            }
+                            },
+                            watchProgressFraction = watchProgressFraction
                         )
                     }
                 }
@@ -767,9 +783,7 @@ fun ArchiveScreen(
                         IconButton(
                             onClick = {
                                 if (isValidVideoUrl(prog.youtubeUrl)) {
-                                    onSaveWatchProgress(prog, 0L, 0L)
-                                    selectedDetailsProgram = null
-                                    playingProgram = prog
+                                    startProgram(prog)
                                 } else {
                                     Toast.makeText(context, context.getString(R.string.archive_video_unavailable), Toast.LENGTH_SHORT).show()
                                 }
@@ -873,9 +887,7 @@ fun ArchiveScreen(
                     Button(
                         onClick = {
                             if (isValidVideoUrl(prog.youtubeUrl)) {
-                                onSaveWatchProgress(prog, 0L, 0L)
-                                selectedDetailsProgram = null
-                                playingProgram = prog
+                                startProgram(prog)
                             } else {
                                 Toast.makeText(context, context.getString(R.string.archive_video_unavailable), Toast.LENGTH_SHORT).show()
                             }
