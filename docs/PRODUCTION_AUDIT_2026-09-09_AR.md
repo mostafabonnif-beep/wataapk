@@ -19,7 +19,7 @@
 - صفحة التحميل، `/admin/`، الخصوصية، وملف APK العام — HTTP 200.
 - ملف APK العام مطابق للملف الموجود في المستودع، قابل للفك، وموقّع بـ APK Signature Scheme v2.
 - البث المباشر HLS يعيد Manifest صالحاً؛ `ffprobe` قرأ H.264 بدقة 1920×1080 وصوت AAC، وتم جلب مقاطع HLS فعلية بنجاح.
-- وجهات YouTube النشطة الثلاثة تعيد HTTP 200.
+- وجهات YouTube النشطة الثلاثة تعيد HTTP 200، و`streams/yt_sport` يشير إلى قناة Elwatania Sport الرسمية.
 
 ## ما ينقص قبل إعلان نسخة نهائية
 
@@ -34,4 +34,4 @@
 - لوحة التحكم: `https://elwataniatvapp.web.app/admin/`
 - صفحة التحميل: `https://elwataniatvapp.web.app/download`
 - صفحة الخصوصية: `https://elwataniatvapp.web.app/privacy.html`
-- لا توجد تغييرات مباشرة على بيانات Firestore في هذا الفحص؛ تم الاكتفاء بالقراءة والتحقق.
+- تم فحص بيانات Firestore مع نسخة احتياطية محلية لمجموعة `streams`؛ لم تُغيّر سجلات الأرشيف، وتم التأكد من أن رابط `streams/yt_sport` الحالي هو الرابط الرسمي العامل.
