@@ -26,11 +26,11 @@
 | صفحة التحميل العامة | [`elwataniatvapp.web.app/download`](https://elwataniatvapp.web.app/download) تنشر APK v8.1.9 من Firebase Hosting بعد التحقق من البصمة والتطابق الثنائي | ✅ |
 | **متبقٍّ عند المستخدم:** | اختبار الإطلاق النهائي على أجهزة حقيقية وتأكيد محتوى القنوات من لوحة الإدارة |
 
-> ⚠️ **قبل الإطلاق:** Anonymous Auth وFirestore Rules منشوران على مشروع `elwataniatvapp` بعد اجتياز اختبارات الأمان. Cloud Functions غير منشورة لأن المشروع على خطة Spark؛ لذلك تعتمد المزايا الحالية على قواعد Firestore والتحقق المحلي. رابط الخصوصية التشغيلي هو Firebase Hosting، ورابط البث الأساسي الرسمي مثبت في `streams/live_main`. اختبر البث على جهاز حقيقي وأنشئ إصدار Play موقّع. التوقيع النهائي لا يُحفظ في المستودع؛ يمرَّر فقط عبر Gradle properties أو متغيرات بيئية محمية.
+> ⚠️ **قبل الإطلاق:** Anonymous Auth وFirestore Rules منشوران على مشروع `elwataniatvapp` بعد اجتياز اختبارات الأمان. Cloud Functions غير منشورة لأن المشروع على خطة Spark؛ لذلك تعتمد المزايا الحالية على قواعد Firestore والتحقق المحلي. رابط الخصوصية التشغيلي هو Firebase Hosting، ورابط البث الأساسي الرسمي مثبت في `streams/live_main`. اختبر البث على جهاز حقيقي وأنشئ إصدار Play موقّع. التوقيع النهائي لا يُحفظ في المستودع؛ يمرَّر فقط عبر Gradle properties أو متغيرات بيئية محمية.
 
 ## 📦 آخر إصدار قابل للتجربة
 
-الإصدار الحالي من المصدر هو **v8.5.1 / versionCode 37**. رابط التحميل العام هو [`elwataniatvapp.web.app/download`](https://elwataniatvapp.web.app/download)، بينما تبقى الأسرار وملفات التوقيع خارج المستودع. نجحت مهام `compileDebugKotlin` و`testDebugUnitTest` و`lintDebug` و`assembleDebug`، كما نجح CI في GitHub Actions. رابط البث لا يُضمّن داخل التطبيق؛ يقرأ التطبيق المصدر الرسمي المنشور في Firestore. يجب اعتماد اختبار جهاز Android حقيقي أو محاكي KVM قبل التسليم المؤسسي النهائي.
+الإصدار الحالي من المصدر هو **v8.6.0 / versionCode 38**. رابط التحميل العام هو [`elwataniatvapp.web.app/download`](https://elwataniatvapp.web.app/download)، بينما تبقى الأسرار وملفات التوقيع خارج المستودع. نجحت مهام `testDebugUnitTest` و`lintDebug` و`assembleDebug`، كما نجحت اختبارات Functions وFirestore Rules وبناء Hosting وCI في GitHub Actions. يحتوي v8.6.0 على تشغيل الأرشيف داخل التطبيق، استئناف المشاهدة، قسم «تابع المشاهدة»، وتحسينات RTL ولوحة التحكم. يجب اعتماد اختبار جهاز Android حقيقي وبناء AAB موقّع قبل التسليم المؤسسي النهائي.
 
 ## 🌟 الميزات الرئيسية
 

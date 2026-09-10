@@ -39,7 +39,7 @@
 
 استخدم Android Studio حديثاً مع JDK 17 وAndroid SDK 36. يبقى إعداد Firebase خارج Git. عند البناء المحلي، ضع ملف `google-services.json` الذي يملكه صاحب المشروع في المسار القياسي محلياً فقط، ولا تضعه في Kotlin أو XML أو KTS ولا ترفعه إلى المستودع.
 
-الإصدار الموحد هو `versionCode = 26` و`versionName = "8.1.3"` داخل `app/build.gradle.kts`. يتضمن الإصدار أصول شعار القناة الموحد في `assets/images/watania-channel-logo-unified.png` و`app/src/main/res/drawable-nodpi/watania_channel_logo.png` و`app/src/main/res/drawable-nodpi/watania_channel_logo_foreground.png`. يستخدم `AndroidManifest.xml` الاسم الصريح `@mipmap/ic_launcher_watania` لتجنب بقاء أيقونة launcher قديمة في cache. كما تم تحسين RTL، توسيع مساحة شريط التنقل للعربية، حجب القيم التجريبية في المصدر والواجهة، وربط زر الأخبار بوجهة YouTube.
+الإصدار الموحد الحالي هو `versionCode = 38` و`versionName = "8.6.0"` داخل `app/build.gradle.kts`. يتضمن الإصدار أصول شعار القناة الموحد في `assets/images/watania-channel-logo-unified.png` و`app/src/main/res/drawable-nodpi/watania_channel_logo.png` و`app/src/main/res/drawable-nodpi/watania_channel_logo_foreground.png`. يستخدم `AndroidManifest.xml` الاسم الصريح `@mipmap/ic_launcher_watania` لتجنب بقاء أيقونة launcher قديمة في cache. كما تم تحسين RTL، توسيع مساحة شريط التنقل للعربية، حجب القيم التجريبية في المصدر والواجهة، وربط زر الأخبار بوجهة YouTube.
 
 ## البناء والاختبارات
 
