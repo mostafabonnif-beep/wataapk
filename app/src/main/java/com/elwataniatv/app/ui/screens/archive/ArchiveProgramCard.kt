@@ -76,7 +76,8 @@ fun ArchiveProgramCard(
     onPlay: () -> Unit,
     onCardClick: () -> Unit,
     onToggleFavorite: () -> Unit,
-    onShare: () -> Unit
+    onShare: () -> Unit,
+    watchProgressFraction: Float = 0f
 ) {
     val resolvedThumbnail = remember(program.thumbnailUrl, program.youtubeUrl) {
         deriveThumbnailUrl(program.thumbnailUrl, program.youtubeUrl)
@@ -189,6 +190,25 @@ fun ArchiveProgramCard(
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+
+            if (watchProgressFraction > 0f) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White.copy(alpha = 0.25f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(watchProgressFraction.coerceIn(0f, 1f))
+                            .fillMaxSize()
+                            .background(BrandAccent)
+                    )
                 }
             }
         }
