@@ -1,10 +1,19 @@
 # Project Work Log
 
-**Last updated:** August 10, 2026
-**Repository:** `merci1994dz/Elwataniatv-Channel`
-**Current verified main:** `56ecec3a28c3a23c7eb6be223796b8621454f49e`
+**Last updated:** September 10, 2026
+**Repository:** `mostafabonnif-beep/wataapk`
+**Current verified main:** `6cb790a` before the v8.6.0 release-candidate bump
 
 This file is the durable handoff for the next maintainer or assistant. It records what was actually changed and what remains blocked. It is not a substitute for live verification of GitHub, Firebase, Play Console, or hosting state.
+
+## 2026-09-10 — v8.6.0 final candidate
+
+- Bumped the Android source version to `versionCode 38` / `versionName 8.6.0`.
+- Added archive playback hardening, Firestore-only fallback selection, Arabic/invalid-link handling, and continue-watching progress persistence.
+- Added the «تابع المشاهدة» rail with thumbnail and progress indicator.
+- Applied RTL touch-target and desktop/mobile admin navigation improvements.
+- Verified locally with Android unit tests, lint, debug APK assembly, Functions tests, Firestore Rules emulator tests (30/30), and the restricted Hosting build.
+- The remaining release gates are owner-controlled: protected release signing inputs, production `google-services.json`, and real-device validation before Play Store publication.
 
 ## Completed and merged
 
