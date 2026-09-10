@@ -248,9 +248,9 @@ fun ArchiveProgramCard(
                         style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl),
                         color = Color.White.copy(alpha = 0.68f),
                         fontSize = 12.sp,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        lineHeight = 17.sp
+                        lineHeight = 16.sp
                     )
                 }
                 Row(
