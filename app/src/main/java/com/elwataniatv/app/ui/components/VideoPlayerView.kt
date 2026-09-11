@@ -6,6 +6,7 @@ import android.annotation.SuppressLint
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import android.webkit.CookieManager
 import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -122,6 +123,8 @@ fun VideoPlayerView(
     var autoRetryCount by remember(url) { mutableIntStateOf(0) }
     var retryJob by remember(url) { mutableStateOf<Job?>(null) }
     var fallbackAttempted by remember(url) { mutableStateOf(false) }
+    var webViewLoading by remember(url) { mutableStateOf(false) }
+    var webViewError by remember(url) { mutableStateOf(false) }
     val maxAutoRetries = 3
     val latestCurrentStreamId by rememberUpdatedState(currentStreamId)
     val latestFallbackStreams by rememberUpdatedState(fallbackStreams)
@@ -129,6 +132,17 @@ fun VideoPlayerView(
     val coroutineScope = rememberCoroutineScope()
 
     val isYouTube = type == "youtube" || type == "web" || url.contains("youtube.com") || url.contains("youtu.be") || url.contains("facebook.com") || url.contains("dailymotion.com")
+
+    LaunchedEffect(url, isYouTube) {
+        if (!isYouTube) return@LaunchedEffect
+        webViewLoading = true
+        webViewError = false
+        delay(12_000)
+        if (webViewLoading) {
+            webViewLoading = false
+            webViewError = true
+        }
+    }
 
     // Single ExoPlayer instance tied to context & url (persists during fullscreen toggle)
     val exoPlayer = remember(playerContext, url, type) {
@@ -377,8 +391,40 @@ fun VideoPlayerView(
                                 mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
                                 userAgentString = "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                             }
+                            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                             webChromeClient = WebChromeClient()
                             webViewClient = object : WebViewClient() {
+                                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                                    webViewLoading = true
+                                    webViewError = false
+                                }
+
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    webViewLoading = false
+                                }
+
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    request: android.webkit.WebResourceRequest?,
+                                    error: android.webkit.WebResourceError?
+                                ) {
+                                    if (request?.isForMainFrame != false) {
+                                        webViewLoading = false
+                                        webViewError = true
+                                    }
+                                }
+
+                                override fun onReceivedHttpError(
+                                    view: WebView?,
+                                    request: android.webkit.WebResourceRequest?,
+                                    errorResponse: android.webkit.WebResourceResponse?
+                                ) {
+                                    if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 200) >= 400) {
+                                        webViewLoading = false
+                                        webViewError = true
+                                    }
+                                }
+
                                 override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
                                     val target = request?.url ?: return true
                                     val host = target.host?.lowercase()
@@ -389,12 +435,60 @@ fun VideoPlayerView(
                         }
                     },
                     update = { webView ->
-                        val targetUrl = youtubeEmbedUrl(url) ?: url.trim()
-                        if (targetUrl.isNotBlank() && webView.url != targetUrl) {
+                        val targetUrl = youtubeEmbedUrl(url)
+                        if (targetUrl.isNullOrBlank()) {
+                            webViewLoading = false
+                            webViewError = true
+                        } else if (webView.url != targetUrl) {
+                            webViewLoading = true
+                            webViewError = false
                             webView.loadUrl(targetUrl)
                         }
                     }
                 )
+
+                if (webViewLoading && !webViewError) {
+                    CircularProgressIndicator(color = BrandAccent, modifier = Modifier.size(42.dp))
+                }
+
+                if (webViewError) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.88f))
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VideoLibrary,
+                            contentDescription = null,
+                            tint = BrandAccent,
+                            modifier = Modifier.size(42.dp)
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = stringResource(R.string.player_web_failed_title),
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = {
+                                val target = com.elwataniatv.app.util.safeHttpUri(url)
+                                if (target != null) {
+                                    runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, target)) }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.player_open_external), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             } else if (exoPlayer != null) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
