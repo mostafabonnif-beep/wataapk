@@ -1045,7 +1045,10 @@ function mountAllPanes() {
   const allowed = new Set(allowedTabsForRole(state.role));
   const mount = (tab, fn) => {
     if (!allowed.has(tab)) return;
-    try { fn(); } catch (e) { console.warn(`[Pane] ${tab} mount failed:`, e); }
+    try { fn(); } catch (e) {
+      console.warn(`[Pane] ${tab} mount failed:`, e);
+      showAlert(globalAlert, "error", `تعذر تحميل قسم ${tab}. تحقق من اتصال Firestore ثم اضغط «↻ تحديث».`);
+    }
   };
   mount("streams", mountStreamsPane);
   mount("breaking", mountBreakingPane);
