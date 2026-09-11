@@ -755,7 +755,9 @@ async function bootstrapFirebase() {
 
 function setAppVisible(visible) {
   loginSection.style.display = visible ? "none" : "flex";
-  appSection.style.display = visible ? "flex" : "none";
+  appSection.classList.toggle("hidden", !visible);
+  if (visible) appSection.style.removeProperty("display");
+  else appSection.style.display = "none";
 }
 
 function resetListeners() {
