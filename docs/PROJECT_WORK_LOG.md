@@ -1,8 +1,8 @@
 # Project Work Log
 
-**Last updated:** September 10, 2026
+**Last updated:** September 11, 2026
 **Repository:** `mostafabonnif-beep/wataapk`
-**Current verified main:** `3983e65`
+**Current verified main:** `b494c01`
 
 This file is the durable handoff for the next maintainer or assistant. It records what was actually changed and what remains blocked. It is not a substitute for live verification of GitHub, Firebase, Play Console, or hosting state.
 
@@ -14,6 +14,8 @@ This file is the durable handoff for the next maintainer or assistant. It record
 - Applied RTL touch-target and desktop/mobile admin navigation improvements.
 - Verified locally with Android unit tests, lint, debug APK assembly, Functions tests, Firestore Rules emulator tests (30/30), and the restricted Hosting build.
 - The remaining release gates are owner-controlled: protected release signing inputs, production `google-services.json`, and real-device validation before Play Store publication.
+- Hardened archive YouTube playback: enabled third-party cookies, captured WebView load/HTTP errors and timeouts, rejected non-video URLs instead of loading a blank channel page, and added an external YouTube fallback.
+- Verified the final candidate with `testDebugUnitTest`, `lintDebug`, `assembleDebug`, Functions tests (10/10), Firestore Rules emulator tests (30/30), Hosting generation, APK integrity, and APK v2 signature verification. The APK is available as a debug candidate; it is not a Play Store release.
 
 ## Completed and merged
 

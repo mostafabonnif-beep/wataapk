@@ -7,7 +7,7 @@
 ## الخطوة 1 — أنشئ مشروع Firebase
 
 1. افتح [Firebase Console](https://console.firebase.google.com).
-2. اضغط **Add project** → اسم المشروع: `elwataniatv` (أو ما تشاء).
+2. افتح مشروع الإنتاج الحالي `elwataniatvapp` (لا تنشئ مشروعاً جديداً عند تجهيز النسخة النهائية).
 3. اقبل الشروط → **تعطيل** Google Analytics (اختياري).
 
 ---
@@ -44,7 +44,7 @@
 
 ## الخطوة 3 — تفعيل الخدمات في Console
 
-1. **Firestore Database** → Create database (وضع الإنتاج). سجّل موقع قاعدة البيانات الفعلي كما يظهر في Console؛ سجل المشروع الحالي يشير إلى `eur3`. لا تغيّر الموقع بعد إنشاء قاعدة البيانات. **قرار المنطقة طُبّق في الكود**: الدوال مضبوطة على `europe-west1` (ضمن eur3) — إن أظهرت Console موقعاً مختلفاً، غيّر `REGION` في `functions/index.js` قبل نشر Functions.
+1. **Firestore Database** → Create database (وضع الإنتاج). سجّل موقع قاعدة البيانات الفعلي كما يظهر في Console؛ مشروع الإنتاج الحالي يستخدم `eur3`. لا تغيّر الموقع بعد إنشاء قاعدة البيانات. **قرار المنطقة طُبّق في الكود**: الدوال مضبوطة على `europe-west1` (ضمن eur3) — إن أظهرت Console موقعاً مختلفاً، غيّر `REGION` في `functions/index.js` قبل نشر Functions.
 2. **Authentication**:
    - فعّل **Email/Password** (لحساب المسؤول).
    - فعّل **Anonymous** (لجلسات مستخدمي التطبيق — تطلبها القواعد).

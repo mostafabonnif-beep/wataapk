@@ -127,6 +127,8 @@
     <string name="player_connection_failed">Impossible de se connecter au serveur de diffusion.</string>
     <string name="player_connection_failed_title">Impossible de lire le flux pour le moment</string>
     <string name="player_retry_hint">Vérifiez votre connexion Internet ou passez au serveur de secours.</string>
+    <string name="player_web_failed_title">La vidéo n’a pas pu être chargée dans l’application</string>
+    <string name="player_open_external">Ouvrir dans YouTube</string>
     <string name="player_reconnecting">Reconnexion au flux (%1$d sur %2$d)…</string>
     <string name="retry">Réessayer</string>
     <string name="close">Fermer</string>

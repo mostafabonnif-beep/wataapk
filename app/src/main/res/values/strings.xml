@@ -153,6 +153,8 @@
     <string name="player_connection_failed">Unable to connect to the live stream server.</string>
     <string name="player_connection_failed_title">Unable to play the stream right now</string>
     <string name="player_retry_hint">Check your internet connection or switch to the backup server.</string>
+    <string name="player_web_failed_title">The video could not be loaded inside the app</string>
+    <string name="player_open_external">Open in YouTube</string>
     <string name="player_reconnecting">Reconnecting to the stream (%1$d of %2$d)…</string>
     <string name="retry">Retry</string>
     <string name="close">Close</string>
