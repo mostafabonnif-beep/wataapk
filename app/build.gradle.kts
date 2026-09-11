@@ -91,6 +91,11 @@ android {
         releaseKeyPassword
     ).all { it != null }
 
+    fun resolveReleaseStoreFile(path: String): File {
+        val appRelative = file(path)
+        return if (appRelative.exists()) appRelative else rootProject.file(path)
+    }
+
     signingConfigs {
         create("debugConfig") {
             storeFile = file("${rootDir}/debug.keystore")
@@ -100,7 +105,7 @@ android {
         }
         if (hasReleaseSigning) {
             create("releaseConfig") {
-                storeFile = file(releaseStoreFile!!)
+                storeFile = resolveReleaseStoreFile(releaseStoreFile!!)
                 storePassword = releaseStorePassword!!
                 keyAlias = releaseKeyAlias!!
                 keyPassword = releaseKeyPassword!!

@@ -1,9 +1,9 @@
 # Release Checklist
 
-Only the following owner-gated items remain before public release:
+The signed v8.6.0 release artifacts are built and verified locally. The following owner-gated items remain before public release:
 
-- [ ] **Signed AAB**: produce and verify a release-signed Android App Bundle; CI currently provides no signed release artifact.
-- [ ] **`google-services.json`**: provide the production Firebase configuration through the secure release/build process; do not commit secrets to the repository.
+- [x] **Signed APK/AAB**: build and verify the release-signed Android APK and Play Store App Bundle.
+- [x] **`google-services.json`**: supply the production Firebase configuration through the secure local/CI build process; it remains untracked and is not committed.
 - [ ] **Real-device test**: install the release build on a physical Android device and verify launch, stream playback, fallback behavior, notifications, comments, reminders, and offline/recovery flows.
 - [ ] **Screenshots**: capture current, genuine screenshots from the release candidate for the supported phone layouts and store listing.
 - [ ] **Play Console**: complete the Play Console listing, upload the signed AAB, configure required declarations, testing tracks, content details, and release metadata.
