@@ -100,6 +100,7 @@ import com.elwataniatv.app.data.model.ArchiveProgram
 import com.elwataniatv.app.data.remote.SyncStatus
 import com.elwataniatv.app.ui.components.VideoPlayerView
 import com.elwataniatv.app.ui.screens.archive.ALL_CATEGORY
+import com.elwataniatv.app.ui.screens.archive.archiveVideoType
 import com.elwataniatv.app.ui.theme.BrandAccent
 import com.elwataniatv.app.ui.theme.BrandBorder
 import com.elwataniatv.app.ui.theme.BrandPanel
@@ -978,7 +979,7 @@ fun ArchiveScreen(
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Text(
-                                    text = prog.date,
+                                    text = com.elwataniatv.app.util.DateFmt.smartDate(prog.date),
                                     style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl),
                                     color = Color.White.copy(alpha = 0.8f),
                                     fontSize = 12.sp,

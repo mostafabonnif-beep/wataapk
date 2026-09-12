@@ -1045,7 +1045,7 @@ private fun HomeLatestNewsSection(
                         NewsItemRow(
                             category = program.category.ifBlank { defaultNewsCategory },
                             title = program.title,
-                            time = program.date.ifBlank {
+                            time = com.elwataniatv.app.util.DateFmt.smartDate(program.date).ifBlank {
                                 if (index == 0) justNow else recent
                             },
                             thumbnailUrl = program.thumbnailUrl,
@@ -1238,7 +1238,7 @@ fun HomeArchiveCard(
                 )
                 if (program.date.isNotBlank()) {
                     Text(
-                        text = program.date,
+                        text = com.elwataniatv.app.util.DateFmt.smartDate(program.date),
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium

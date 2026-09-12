@@ -382,4 +382,5 @@
     <string name="guide_today">Today</string>
     <string name="guide_yesterday">Yesterday</string>
     <string name="guide_tomorrow">Tomorrow</string>
+    <string name="onboarding_live_badge">Live now · 24/7</string>
 </resources>

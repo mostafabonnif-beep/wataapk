@@ -392,4 +392,5 @@
     <string name="continue_watching_title">Reprendre la lecture</string>
     <string name="continue_watching_subtitle">Reprenez là où vous vous êtes arrêté</string>
     <string name="resume_program">Reprendre %1$s — %2$d%% regardé</string>
+    <string name="onboarding_live_badge">En direct · 24/7</string>
 </resources>

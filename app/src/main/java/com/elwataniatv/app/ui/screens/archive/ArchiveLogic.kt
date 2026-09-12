@@ -30,8 +30,29 @@ const val ALL_CATEGORY = "__all__"
  * ─────────────────────────────────────────────────────────────────
  */
 
-/** Whether the archive item contains a playable YouTube video URL. */
-fun isValidVideoUrl(url: String): Boolean = isYouTubeVideoUrl(url)
+private val directVideoExtensions = listOf("mp4", "m3u8", "webm", "mkv", "mov", "m4v", "3gp", "ts")
+
+/**
+ * Whether the archive item contains a playable video URL: either a
+ * YouTube link or a direct progressive/HLS media link the ExoPlayer
+ * engine can handle natively.
+ */
+fun isValidVideoUrl(url: String): Boolean {
+    val trimmed = url.trim()
+    if (isYouTubeVideoUrl(trimmed)) return true
+    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) return false
+    val path = trimmed.substringBefore('?').substringBefore('#')
+    val extension = path.substringAfterLast('.', "").lowercase()
+    return extension in directVideoExtensions
+}
+
+/**
+ * The engine type to pass to VideoPlayerView: "youtube" renders in the
+ * WebView path, while direct links fall through to ExoPlayer — the
+ * player detects HLS from the URL automatically.
+ */
+fun archiveVideoType(url: String): String =
+    if (isYouTubeVideoUrl(url.trim())) "youtube" else "mp4"
 
 /**
  * Resolves the thumbnail to show: the stored thumbnail when it is an

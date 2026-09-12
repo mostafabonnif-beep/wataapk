@@ -125,6 +125,7 @@ fun VideoPlayerView(
     var fallbackAttempted by remember(url) { mutableStateOf(false) }
     var webViewLoading by remember(url) { mutableStateOf(false) }
     var webViewError by remember(url) { mutableStateOf(false) }
+    var webLoadedFor by remember(url) { mutableStateOf<String?>(null) }
     val maxAutoRetries = 3
     val latestCurrentStreamId by rememberUpdatedState(currentStreamId)
     val latestFallbackStreams by rememberUpdatedState(fallbackStreams)
@@ -360,6 +361,36 @@ fun VideoPlayerView(
         }
     }
 
+    val handlePlaybackFailure: () -> Unit = {
+        val fallback = if (!fallbackAttempted) {
+            nextFallbackStream(latestCurrentStreamId, latestFallbackStreams)
+        } else {
+            null
+        }
+        if (fallback != null) {
+            fallbackAttempted = true
+            isBuffering = true
+            errorMessage = context.getString(R.string.player_switching_fallback)
+            latestOnFallbackStream(fallback)
+        } else {
+            webViewError = true
+            webViewLoading = false
+        }
+    }
+
+    // Reports YouTube iframe player errors (e.g. 101/150/153 = embedding
+    // blocked) from inside the WebView so the app can switch sources
+    // automatically instead of leaving the user stuck on a broken embed.
+    class YouTubeErrorBridge(
+        private val onError: (Int) -> Unit
+    ) {
+        @android.webkit.JavascriptInterface
+        fun onYtError(code: Int) {
+            android.util.Log.w("VideoPlayerView", "YouTube player error code=$code")
+            onError(code)
+        }
+    }
+
     val RenderPlayerContent: @Composable (isDialog: Boolean) -> Unit = { isDialog ->
         // While the activity is in Picture-in-Picture the floating window is
         // tiny: hide all in-app overlays (spinner, error UI, controls) and
@@ -392,6 +423,19 @@ fun VideoPlayerView(
                                 userAgentString = "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                             }
                             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                            addJavascriptInterface(
+                                YouTubeErrorBridge { code ->
+                                    coroutineScope.launch {
+                                        // 2/5/100/101/150/153 all mean the
+                                        // embed cannot play — fall through to
+                                        // the next configured source.
+                                        if (code == 101 || code == 150 || code == 153 || code == 100 || code == 5) {
+                                            handlePlaybackFailure()
+                                        }
+                                    }
+                                },
+                                "AndroidYtBridge"
+                            )
                             webChromeClient = WebChromeClient()
                             webViewClient = object : WebViewClient() {
                                 override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
@@ -439,10 +483,36 @@ fun VideoPlayerView(
                         if (targetUrl.isNullOrBlank()) {
                             webViewLoading = false
                             webViewError = true
-                        } else if (webView.url != targetUrl) {
+                        } else if (webLoadedFor != targetUrl) {
+                            webLoadedFor = targetUrl
                             webViewLoading = true
                             webViewError = false
-                            webView.loadUrl(targetUrl)
+                            val embedWithApi = targetUrl + (if (targetUrl.contains('?')) "&" else "?") +
+                                "enablejsapi=1&playsinline=1&rel=0&origin=https%3A%2F%2Fwww.youtube.com"
+                            val html = """<!DOCTYPE html><html><head>
+                                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+                                <style>html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}
+                                iframe{width:100%;height:100%;border:0}</style></head>
+                                <body>
+                                <iframe id="yt" src=""" + embedWithApi + """" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+                                <script src="https://www.youtube.com/iframe_api"></script>
+                                <script>
+                                function onYouTubeIframeAPIReady() {
+                                  new YT.Player('yt', {
+                                    events: {
+                                      'onError': function(e) { AndroidYtBridge.onYtError(e.data); }
+                                    }
+                                  });
+                                }
+                                </script>
+                                </body></html>"""
+                            webView.loadDataWithBaseURL(
+                                "https://www.youtube.com/",
+                                html,
+                                "text/html",
+                                "utf-8",
+                                null
+                            )
                         }
                     }
                 )
