@@ -48,10 +48,10 @@
         <h1>الوطنية TV<br><span>القناة معك كل يوم.</span></h1>
         <p class="lead">من البث المباشر إلى آخر النشرات والبرامج، يجمع لك التطبيق ما تحتاجه لمتابعة القناة بسهولة، في البيت أو أثناء التنقل.</p>
         <div class="actions">
-          <a class="btn btn-primary" id="download-apk" href="/assets/downloads/ElwataniaTV-v8.1.9-professional-signed.apk.txt" download="ElwataniaTV-v8.1.9-professional-signed.apk">تحميل التطبيق</a>
+          <a class="btn btn-primary" id="download-apk" href="/assets/downloads/ElwataniaTV-v8.6.0-release.apk.txt" download="ElwataniaTV-v8.6.0-release.apk">تحميل التطبيق</a>
           <a class="btn btn-quiet" href="#preview">شاهد كيف يعمل</a>
         </div>
-        <p class="microcopy">الإصدار 8.1.9 · التطبيق الرسمي لأجهزة Android</p>
+        <p class="microcopy">الإصدار 8.6.0 · التطبيق الرسمي لأجهزة Android</p>
         <p id="download-status"></p>
       </div>
       <div class="hero-card">
@@ -81,7 +81,7 @@
       <article class="feature"><i>04</i><strong>التنبيهات</strong><p>تصلك أهم التنبيهات والمستجدات في الوقت المناسب.</p></article>
     </div></section>
 
-    <section class="download-section"><div class="shell section download-wrap"><div><span class="section-kicker">النسخة الرسمية</span><h2>حمّل تطبيق الوطنية TV</h2><p class="section-intro">ابدأ التحميل من هذه الصفحة. بعد اكتماله، افتح الملف واتبع خطوات التثبيت على هاتفك.</p><div class="actions"><a class="btn btn-primary" href="#top" onclick="document.getElementById('download-apk').click();return false">تحميل APK</a><a class="btn btn-quiet" href="#install">طريقة التثبيت</a></div></div><div class="release"><div class="release-row"><span>الإصدار</span><b>8.1.9</b></div><div class="release-row"><span>الحجم</span><b>8.6 MB تقريباً</b></div><div class="release-row"><span>Package ID</span><b dir="ltr">com.elwataniatv.app</b></div><div class="hash">SHA-256<br>cbee39dae065857d1acf1b4412d93a0cdf4706e50c75a2e7c27b9a2db6d0b5cf</div></div></div></section>
+    <section class="download-section"><div class="shell section download-wrap"><div><span class="section-kicker">النسخة الرسمية</span><h2>حمّل تطبيق الوطنية TV</h2><p class="section-intro">ابدأ التحميل من هذه الصفحة. بعد اكتماله، افتح الملف واتبع خطوات التثبيت على هاتفك.</p><div class="actions"><a class="btn btn-primary" href="#top" onclick="document.getElementById('download-apk').click();return false">تحميل APK</a><a class="btn btn-quiet" href="#install">طريقة التثبيت</a></div></div><div class="release"><div class="release-row"><span>الإصدار</span><b>8.6.0</b></div><div class="release-row"><span>الحجم</span><b>8.9 MB تقريباً</b></div><div class="release-row"><span>Package ID</span><b dir="ltr">com.elwataniatv.app</b></div><div class="hash">SHA-256<br>fff6ed7d13d8b09ff7c44f3206464923d6b877405cf10a65d7c6668277f9c367</div></div></div></section>
 
     <section class="shell section" id="install"><div class="section-head"><span class="section-kicker">طريقة التثبيت</span><h2>ثلاث خطوات وتبدأ المشاهدة</h2><p class="section-intro">التطبيق متاح حالياً خارج Google Play، لذلك سيطلب Android السماح بالتثبيت من المتصفح.</p></div><div class="steps"><article class="step"><h3>حمّل الملف</h3><p>اضغط «تحميل التطبيق» وانتظر اكتمال تنزيل APK.</p></article><article class="step"><h3>افتح APK</h3><p>افتح الملف من إشعار التنزيلات أو من مجلد Downloads.</p></article><article class="step"><h3>اسمح مرة واحدة</h3><p>عند الطلب، اسمح للمتصفح بالتثبيت من هذا المصدر ثم أكمل التثبيت.</p></article></div></section>
 
@@ -90,9 +90,9 @@
 
   <footer class="footer">الوطنية TV · التطبيق الرسمي · <a href="/privacy">سياسة الخصوصية</a></footer>
   <script>
-    const source='/assets/downloads/ElwataniaTV-v8.1.9-professional-signed.apk.txt';
+    const source='/assets/downloads/ElwataniaTV-v8.6.0-release.apk.txt';
     const button=document.getElementById('download-apk'); const status=document.getElementById('download-status');
-    button.addEventListener('click',async event=>{event.preventDefault();button.textContent='جارٍ تجهيز الملف...';button.setAttribute('aria-busy','true');try{const response=await fetch(source,{cache:'no-store'});if(!response.ok)throw Error('download');const encoded=(await response.text()).trim();const binary=atob(encoded),parts=[],size=1024*1024;for(let i=0;i<binary.length;i+=size){const slice=binary.slice(i,i+size),bytes=new Uint8Array(slice.length);for(let j=0;j<slice.length;j++)bytes[j]=slice.charCodeAt(j);parts.push(bytes)}const url=URL.createObjectURL(new Blob(parts,{type:'application/vnd.android.package-archive'}));const link=document.createElement('a');link.href=url;link.download='ElwataniaTV-v8.1.9-professional-signed.apk';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);status.style.display='block';status.textContent='بدأ التحميل. افتح الملف بعد اكتماله للتثبيت.'}catch(e){status.style.display='block';status.textContent='تعذر بدء التحميل. أعد المحاولة باستخدام Chrome أو Samsung Internet.'}button.removeAttribute('aria-busy');button.textContent='تحميل التطبيق'});
+    button.addEventListener('click',async event=>{event.preventDefault();button.textContent='جارٍ تجهيز الملف...';button.setAttribute('aria-busy','true');try{const response=await fetch(source,{cache:'no-store'});if(!response.ok)throw Error('download');const encoded=(await response.text()).trim();const binary=atob(encoded),parts=[],size=1024*1024;for(let i=0;i<binary.length;i+=size){const slice=binary.slice(i,i+size),bytes=new Uint8Array(slice.length);for(let j=0;j<slice.length;j++)bytes[j]=slice.charCodeAt(j);parts.push(bytes)}const url=URL.createObjectURL(new Blob(parts,{type:'application/vnd.android.package-archive'}));const link=document.createElement('a');link.href=url;link.download='ElwataniaTV-v8.6.0-release.apk';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);status.style.display='block';status.textContent='بدأ التحميل. افتح الملف بعد اكتماله للتثبيت.'}catch(e){status.style.display='block';status.textContent='تعذر بدء التحميل. أعد المحاولة باستخدام Chrome أو Samsung Internet.'}button.removeAttribute('aria-busy');button.textContent='تحميل التطبيق'});
   </script>
 </body>
 </html>
