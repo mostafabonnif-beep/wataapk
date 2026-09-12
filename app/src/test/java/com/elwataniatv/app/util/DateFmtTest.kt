@@ -1,12 +1,20 @@
 package com.elwataniatv.app.util
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
-import java.time.LocalDate
+import java.util.Calendar
+import java.util.TimeZone
 
 class DateFmtTest {
 
-    private val today: LocalDate = LocalDate.of(2026, 9, 12)
+    private fun calendarFor(year: Int, month: Int, day: Int): Calendar =
+        Calendar.getInstance(TimeZone.getTimeZone("Africa/Algiers")).apply {
+            clear()
+            set(year, month - 1, day, 12, 0, 0)
+        }
+
+    private val today: Calendar = calendarFor(2026, 9, 12)
 
     @Test
     fun formatsIsoDateWithAlgerianMonthNames() {
@@ -40,14 +48,21 @@ class DateFmtTest {
     }
 
     @Test
-    fun parsesIsoDatetimeWithOffset() {
+    fun parsesIsoDatetimeWithZSuffix() {
         assertEquals("12 سبتمبر 2026", DateFmt.fullDate("2026-09-12T10:30:00Z"))
+    }
+
+    @Test
+    fun parsesIsoDatetimeWithOffset() {
         assertEquals("12 سبتمبر 2026", DateFmt.fullDate("2026-09-12T10:30:00+01:00"))
     }
 
     @Test
     fun parsesEpochMillis() {
-        assertEquals("2026-09-12", DateFmt.parse(epochFor(2026, 9, 12))!!.toString())
+        val parsed = DateFmt.parse(epochFor(2026, 9, 12))
+        assertEquals(2026, parsed!!.get(Calendar.YEAR))
+        assertEquals(Calendar.SEPTEMBER, parsed.get(Calendar.MONTH))
+        assertEquals(12, parsed.get(Calendar.DAY_OF_MONTH))
     }
 
     @Test
@@ -56,10 +71,17 @@ class DateFmtTest {
         assertEquals("", DateFmt.smartDate("", today))
     }
 
+    @Test
+    fun parseReturnsNullForGarbage() {
+        assertNull(DateFmt.parse("أرشيف خاص"))
+        assertNull(DateFmt.parse(""))
+        assertNull(DateFmt.parse("not a date at all"))
+    }
+
     private fun epochFor(year: Int, month: Int, day: Int): String {
-        val cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Africa/Algiers"))
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("Africa/Algiers"))
         cal.set(year, month - 1, day, 12, 0, 0)
-        cal.set(java.util.Calendar.MILLISECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
         return cal.timeInMillis.toString()
     }
 }

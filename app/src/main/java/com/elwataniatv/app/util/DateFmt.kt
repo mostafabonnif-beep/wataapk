@@ -1,14 +1,16 @@
 package com.elwataniatv.app.util
 
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Arabic date formatting for the Algerian audience: Algerian month names
  * (French-derived) plus relative day rules (اليوم / أمس / منذ X أيام...).
+ *
+ * Implemented with Calendar/SimpleDateFormat (API 24-safe, no java.time).
  */
 object DateFmt {
 
@@ -17,61 +19,56 @@ object DateFmt {
         "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
     )
 
-    private val ISO_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US)
-    private val ISO_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-    private val ISO_DATETIME_MILLIS = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US)
+    private val ALGIERS = TimeZone.getTimeZone("Africa/Algiers")
+
+    private val ISO_DATE = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+        timeZone = ALGIERS
+        isLenient = false
+    }
+    private val ISO_DATETIME = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+        timeZone = ALGIERS
+        isLenient = false
+    }
+    private val ISO_DATETIME_MILLIS = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US).apply {
+        timeZone = ALGIERS
+        isLenient = false
+    }
 
     /** Parses an ISO date, ISO datetime, or epoch-millis string; null when unparseable. */
-    fun parse(raw: String): LocalDate? {
+    fun parse(raw: String): Calendar? {
         val trimmed = raw.trim()
         if (trimmed.isEmpty()) return null
         trimmed.toLongOrNull()?.let { epoch ->
-            return try {
-                LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochMilli(epoch),
-                    ZoneId.of("Africa/Algiers")
-                ).toLocalDate()
-            } catch (_: Exception) {
-                null
-            }
+            return Calendar.getInstance(ALGIERS).apply { timeInMillis = epoch }
         }
-        return try {
-            LocalDate.parse(trimmed, ISO_DATE)
-        } catch (_: Exception) {
+        for (format in listOf(ISO_DATE, ISO_DATETIME_MILLIS, ISO_DATETIME)) {
             try {
-                LocalDateTime.parse(trimmed, ISO_DATETIME_MILLIS).toLocalDate()
+                val parsed: Date = format.parse(trimmed) ?: continue
+                return Calendar.getInstance(ALGIERS).apply { time = parsed }
             } catch (_: Exception) {
-                try {
-                    LocalDateTime.parse(trimmed, ISO_DATETIME).toLocalDate()
-                } catch (_: Exception) {
-                    try {
-                        LocalDateTime.parse(trimmed).toLocalDate()
-                    } catch (_: Exception) {
-                        try {
-                            java.time.OffsetDateTime.parse(trimmed).toLocalDate()
-                        } catch (_: Exception) {
-                            null
-                        }
-                    }
-                }
+                // try the next pattern
             }
         }
+        return null
     }
 
     /** "اليوم", "أمس", "منذ 3 أيام", "منذ 2 أسبوع", "25 جويلية", "25 جويلية 2025". */
-    fun smartDate(raw: String, today: LocalDate = LocalDate.now(ZoneId.of("Africa/Algiers"))): String {
+    fun smartDate(raw: String, today: Calendar = Calendar.getInstance(ALGIERS)): String {
         val date = parse(raw) ?: return raw
-        val days = java.time.temporal.ChronoUnit.DAYS.between(date, today)
+        val dayOfDate = floorDivDay(date)
+        val dayOfToday = floorDivDay(today)
+        val days = ((dayOfToday - dayOfDate) / DAY_MS)
         return when {
             days <= -1L -> formatDayMonthYear(date) // future-dated content
             days == 0L -> "اليوم"
             days == 1L -> "أمس"
-            days < 7L -> if (days == 2L) "منذ يومين" else "منذ $days أيام"
+            days == 2L -> "منذ يومين"
+            days < 7L -> "منذ $days أيام"
             days <= 30L -> {
                 val weeks = days / 7
                 if (weeks == 1L) "منذ أسبوع" else if (weeks == 2L) "منذ أسبوعين" else "منذ $weeks أسابيع"
             }
-            date.year == today.year -> formatDayMonth(date)
+            date.get(Calendar.YEAR) == today.get(Calendar.YEAR) -> formatDayMonth(date)
             else -> formatDayMonthYear(date)
         }
     }
@@ -82,9 +79,22 @@ object DateFmt {
         return formatDayMonthYear(date)
     }
 
-    private fun formatDayMonth(date: LocalDate): String =
-        "${date.dayOfMonth} ${ALGERIAN_MONTHS[date.monthValue - 1]}"
+    // Calendar day floored to UTC midnight, in millis — stable day arithmetic
+    // across DST boundary crossings (Algiers has no DST, but stay defensive).
+    private fun floorDivDay(cal: Calendar): Long {
+        val copy = cal.clone() as Calendar
+        copy.set(Calendar.HOUR_OF_DAY, 0)
+        copy.set(Calendar.MINUTE, 0)
+        copy.set(Calendar.SECOND, 0)
+        copy.set(Calendar.MILLISECOND, 0)
+        return copy.timeInMillis
+    }
 
-    private fun formatDayMonthYear(date: LocalDate): String =
-        "${date.dayOfMonth} ${ALGERIAN_MONTHS[date.monthValue - 1]} ${date.year}"
+    private const val DAY_MS = 86_400_000L
+
+    private fun formatDayMonth(date: Calendar): String =
+        "${date.get(Calendar.DAY_OF_MONTH)} ${ALGERIAN_MONTHS[date.get(Calendar.MONTH)]}"
+
+    private fun formatDayMonthYear(date: Calendar): String =
+        "${date.get(Calendar.DAY_OF_MONTH)} ${ALGERIAN_MONTHS[date.get(Calendar.MONTH)]} ${date.get(Calendar.YEAR)}"
 }
