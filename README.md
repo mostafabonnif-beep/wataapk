@@ -23,7 +23,7 @@
 | إصلاحات v8.1.7 | تخفيف Typography والبطل الرئيسي وشريط التنقل، توحيد Archive/Social/Websites، مطابقة skeleton، نقل selectedStream إلى LiveViewModel، وتشديد فحص الروابط | ✅ |
 | إصلاحات v8.1.8 | إعادة فحص نهائية للخطوط خفّضت History وOnboarding وGlobalErrorBoundary إلى 18sp، مع إعادة اختبار كاملة للمصدر والبناء والمحاكي | ✅ |
 | إصلاحات v8.1.9 | تثبيت ContentOrRtl في النصوص الديناميكية، إزالة العناوين العربية الصلبة من fallback، تعطيل الخبر الافتراضي قبل Firebase، وإضافة fallback مترجم لاسم القناة | ✅ |
-| صفحة التحميل العامة | [`elwataniatvapp.web.app/download`](https://elwataniatvapp.web.app/download) تنشر حالياً APK v8.1.9 الموقّع؛ لا تُرفع v8.6.0 قبل توفير مفتاح التوقيع الأصلي | ✅ |
+| صفحة التحميل العامة | [`elwataniatvapp.web.app/download`](https://elwataniatvapp.web.app/download) تنشر حالياً APK v8.6.0 الموقّع؛ تم التحقق من صفحة التحميل والـAPK العام ✅ |
 | **متبقٍّ عند المستخدم:** | اختبار الإطلاق النهائي على أجهزة حقيقية وتأكيد محتوى القنوات من لوحة الإدارة |
 
 > ⚠️ **قبل الإطلاق:** Anonymous Auth وFirestore Rules منشوران على مشروع `elwataniatvapp` بعد اجتياز اختبارات الأمان. Cloud Functions غير منشورة لأن المشروع على خطة Spark؛ لذلك تعتمد المزايا الحالية على قواعد Firestore والتحقق المحلي. رابط الخصوصية التشغيلي هو Firebase Hosting، ورابط البث الأساسي الرسمي مثبت في `streams/live_main`. اختبر البث على جهاز حقيقي وأنشئ إصدار Play موقّع. التوقيع النهائي لا يُحفظ في المستودع؛ يمرَّر فقط عبر Gradle properties أو متغيرات بيئية محمية.
