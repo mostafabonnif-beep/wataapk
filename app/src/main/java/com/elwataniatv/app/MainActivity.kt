@@ -96,7 +96,7 @@ private fun openNewsUrl(context: Context, rawUrl: String) {
     }
 }
 
-private fun isVersionLessThan(current: String, required: String): Boolean {
+internal fun isVersionLessThan(current: String, required: String): Boolean {
     if (required.isBlank()) return false
     val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
     val requiredParts = required.split(".").map { it.toIntOrNull() ?: 0 }
@@ -107,6 +107,20 @@ private fun isVersionLessThan(current: String, required: String): Boolean {
         if (currentPart != requiredPart) return currentPart < requiredPart
     }
     return false
+}
+
+internal fun isUpdateAvailable(
+    currentCode: Int,
+    currentVersionName: String,
+    targetVersion: String
+): Boolean {
+    if (targetVersion.isBlank()) return false
+    val trimmed = targetVersion.trim()
+    val targetCode = trimmed.toIntOrNull()
+    if (targetCode != null) {
+        return currentCode < targetCode
+    }
+    return isVersionLessThan(currentVersionName, trimmed)
 }
 
 @AndroidEntryPoint
@@ -390,13 +404,21 @@ fun MainAppShell(
     val shareAppTemplate = stringResource(R.string.share_app_text)
     val commentSendFailed = stringResource(R.string.comment_send_failed)
     val forceUpdate = remember(appConfig.minVersion) {
-        isVersionLessThan(BuildConfig.VERSION_NAME, appConfig.minVersion)
+        isUpdateAvailable(
+            currentCode = BuildConfig.VERSION_CODE,
+            currentVersionName = BuildConfig.VERSION_NAME,
+            targetVersion = appConfig.minVersion
+        )
     }
     var updatePromptVisible by remember(appConfig.minVersion, appConfig.latestVersion) {
         mutableStateOf(true)
     }
     val optionalUpdate = appConfig.latestVersion.isNotBlank() &&
-        isVersionLessThan(BuildConfig.VERSION_NAME, appConfig.latestVersion) &&
+        isUpdateAvailable(
+            currentCode = BuildConfig.VERSION_CODE,
+            currentVersionName = BuildConfig.VERSION_NAME,
+            targetVersion = appConfig.latestVersion
+        ) &&
         !forceUpdate
     val popupAlert by viewModel.popupAlert.collectAsState()
     val streamHealthState by liveViewModel.streamHealthState.collectAsState()
@@ -435,8 +457,9 @@ fun MainAppShell(
     val items = buildList {
         add(Screen.Live)
         if (appConfig.enableArchive) add(Screen.Archive)
-        if (appConfig.enableSocial) add(Screen.Social)
+        add(Screen.News)
         if (appConfig.enableWebsites) add(Screen.Websites)
+        if (appConfig.enableSocial) add(Screen.Social)
         add(Screen.More)
     }
 
@@ -561,6 +584,16 @@ fun MainAppShell(
                 )
             }
 
+            composable(Screen.News.route) {
+                NewsScreen(
+                    newsItems = newsItems,
+                    onOpenYouTube = { url -> openYouTubeUrl(context, url) },
+                    onOpenNewsUrl = { url -> openNewsUrl(context, url) },
+                    onRetrySync = { viewModel.startFirebaseSync() },
+                    isLoading = false
+                )
+            }
+
             composable(Screen.Favorites.route) {
                 val favPrograms = rawArchive.filter { program -> favorites.any { it.id == program.id } }
                 ArchiveScreen(
@@ -667,6 +700,12 @@ fun MainAppShell(
             composable(Screen.Social.route) {
                 SocialScreen(
                     socialPages = socialPages,
+                    appConfig = appConfig,
+                    onSubmitFeedback = { type, text, email, callback ->
+                        settingsViewModel.submitFeedback(type, text, email, callback)
+                    },
+                    isLoading = syncError == null && socialPages.isEmpty() && appConfig.contactEmail.isBlank() && appConfig.whatsappUrl.isBlank() && appConfig.officialWebsite.isBlank(),
+                    hasError = syncError != null,
                     onRetrySync = { viewModel.startFirebaseSync() }
                 )
             }

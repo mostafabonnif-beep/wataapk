@@ -64,6 +64,16 @@ class FcmTokenSync(private val authSync: FirebaseAuthSync) {
         runCatching {
             val installationId = com.elwataniatv.app.ElWataniaApp.installationId
             val userUid = authSync.auth?.currentUser?.uid ?: return@runCatching
+
+            val context = runCatching { com.google.firebase.FirebaseApp.getInstance().applicationContext }.getOrNull()
+                ?: return@runCatching
+            val availability = com.google.android.gms.common.GoogleApiAvailabilityLight.getInstance()
+                .isGooglePlayServicesAvailable(context)
+            if (availability != com.google.android.gms.common.ConnectionResult.SUCCESS) {
+                Log.w(TAG, "Google Play Services غير متاح لتسجيل التوكن: $availability")
+                return@runCatching
+            }
+
             FirebaseMessaging.getInstance().token
                 .addOnSuccessListener { token ->
                     db.collection("push_tokens").document(userUid).set(

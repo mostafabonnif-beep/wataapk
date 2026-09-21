@@ -81,6 +81,8 @@ fun PremiumLiveHero(
     appName: String = "",
     appSlogan: String = "",
     logoUrl: String = "",
+    currentProgramTitle: String? = null,
+    backdropUrl: String? = null,
     onWatchLive: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenGuide: () -> Unit = {},
@@ -92,20 +94,29 @@ fun PremiumLiveHero(
 
     val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "hero_live_pulse")
     val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 1.25f,
+        initialValue = 0.85f,
+        targetValue = 1.3f,
         animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            animation = androidx.compose.animation.core.tween(750, easing = androidx.compose.animation.core.FastOutSlowInEasing),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "pulse_scale"
+    )
+    val pulseGlowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.85f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(750, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "pulse_glow_alpha"
     )
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val isWideScreen = maxWidth >= 600.dp
         val horizontalGutter = if (isWideScreen) 24.dp else 14.dp
-        val heroMinHeight = if (isWideScreen) 220.dp else 198.dp
-        val heroMaxHeight = if (isWideScreen) 258.dp else 218.dp
+        val heroMinHeight = if (isWideScreen) 230.dp else 208.dp
+        val heroMaxHeight = if (isWideScreen) 270.dp else 228.dp
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -129,27 +140,36 @@ fun PremiumLiveHero(
                     )
                 )
                 .border(
-                    width = 1.dp,
-                    color = BrandAccent.copy(alpha = 0.25f),
+                    width = 1.5.dp,
+                    color = BrandAccent.copy(alpha = 0.35f),
                     shape = RoundedCornerShape(20.dp)
                 )
+                .clickable(enabled = streams.isNotEmpty(), onClick = onWatchLive)
         ) {
-            // Faint brand mark. The remote logo is controlled from Firebase;
-            // the bundled asset remains the offline fallback.
-            if (logoUrl.isNotBlank()) {
+            // Backdrop artwork / thumbnail if provided
+            if (!backdropUrl.isNullOrBlank()) {
+                SubcomposeAsyncImage(
+                    model = backdropUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(0.28f)
+                )
+            } else if (logoUrl.isNotBlank()) {
                 SubcomposeAsyncImage(
                     model = logoUrl,
                     contentDescription = stringResource(R.string.official_logo),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .alpha(0.07f),
+                        .alpha(0.12f),
                     error = {
                         Image(
                             painter = painterResource(R.drawable.watania_channel_logo),
                             contentDescription = stringResource(R.string.official_logo),
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize().alpha(0.06f)
+                            modifier = Modifier.fillMaxSize().alpha(0.10f)
                         )
                     }
                 )
@@ -160,100 +180,142 @@ fun PremiumLiveHero(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .alpha(0.06f)
+                        .alpha(0.10f)
                 )
             }
 
-            // Content
+            // Dark vignette gradient over backdrop
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.3f),
+                                Color.Black.copy(alpha = 0.75f),
+                                Color.Black.copy(alpha = 0.95f)
+                            )
+                        )
+                    )
+            )
+
+            // Content Overlay
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(
-                        horizontal = if (isWideScreen) 22.dp else 14.dp,
-                        vertical = if (isWideScreen) 16.dp else 12.dp
+                        horizontal = if (isWideScreen) 22.dp else 16.dp,
+                        vertical = if (isWideScreen) 16.dp else 14.dp
                     ),
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Top Right Badge
-                Surface(
-                    color = BrandRed,
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-                    modifier = Modifier.align(Alignment.End)
+                // Top Row: HD Tag on Start, Pulsing LIVE badge on End
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            color = Color.White,
-                            shape = CircleShape,
-                            modifier = Modifier
-                                .size(7.dp)
-                                .scale(pulseScale)
-                        ) {}
-                        Text(stringResource(R.string.live_status), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                // Texts (Right Aligned)
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Surface(
+                        color = BrandAccent.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, BrandAccent.copy(alpha = 0.4f))
                     ) {
                         Text(
-                            text = stringResource(R.string.hero_live_quality_tagline),
-                            modifier = Modifier.weight(1f),
+                            text = stringResource(R.string.hd_quality_badge),
                             color = BrandAccent,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.End
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
-                        Surface(
-                            color = BrandAccent.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(4.dp)
+                    }
+
+                    // Pulsing Red Live Badge
+                    Surface(
+                        color = BrandRed,
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.5.dp, Color.White.copy(alpha = pulseGlowAlpha)),
+                        shadowElevation = 6.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .scale(pulseScale)
+                                    .clip(CircleShape)
+                                    .background(Color.White)
+                            )
                             Text(
-                                text = stringResource(R.string.hd_quality_badge),
-                                color = BrandAccent,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                text = stringResource(R.string.live_status),
+                                color = Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Black
                             )
                         }
                     }
+                }
+
+                // Center / Bottom Texts (Right Aligned in RTL)
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                ) {
+                    if (!currentProgramTitle.isNullOrBlank() && com.elwataniatv.app.util.ContentSanitizer.isUsable(currentProgramTitle)) {
+                        Surface(
+                            color = BrandPrimary.copy(alpha = 0.45f),
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(1.dp, BrandAccent.copy(alpha = 0.35f))
+                        ) {
+                            Text(
+                                text = currentProgramTitle,
+                                color = BrandAccent,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = stringResource(R.string.hero_live_quality_tagline),
+                            modifier = Modifier.fillMaxWidth(),
+                            color = BrandAccent,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Start
+                        )
+                    }
+
                     Text(
                         text = appName.ifBlank { stringResource(R.string.app_name) },
                         modifier = Modifier.fillMaxWidth(),
-                        style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl),
+                        style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Content),
                         color = Color.White,
-                                                    fontSize = if (isWideScreen) 22.sp else 19.sp,
-
+                        fontSize = if (isWideScreen) 22.sp else 19.sp,
                         lineHeight = 24.sp,
                         fontWeight = FontWeight.Black,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Start
                     )
                     Text(
                         text = appSlogan.ifBlank { stringResource(R.string.official_live_tagline) },
                         modifier = Modifier.fillMaxWidth(),
-                        style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl),
+                        style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Content),
                         color = Color.White.copy(alpha = 0.75f),
                         fontSize = if (isWideScreen) 13.sp else 12.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Start
                     )
                 }
 
@@ -276,7 +338,7 @@ fun PremiumLiveHero(
                 ) {
                     Icon(androidx.compose.material.icons.Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(22.dp))
                     Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.watch_live_now), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.watch_live_now), fontSize = 13.5.sp, fontWeight = FontWeight.Black)
                 }
             }
         }

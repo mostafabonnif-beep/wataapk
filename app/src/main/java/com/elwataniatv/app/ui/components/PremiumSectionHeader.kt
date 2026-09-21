@@ -33,13 +33,13 @@ fun PremiumSectionHeader(
                 .fillMaxWidth()
                 .heightIn(min = 24.dp),
             style = androidx.compose.ui.text.TextStyle(
-                textDirection = TextDirection.ContentOrRtl,
+                textDirection = TextDirection.Content,
                 lineHeight = 24.sp
             ),
             color = Color.White,
             fontSize = 17.sp,
             fontWeight = FontWeight.Black,
-            textAlign = TextAlign.End,
+            textAlign = TextAlign.Start,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
@@ -50,13 +50,13 @@ fun PremiumSectionHeader(
                     .fillMaxWidth()
                     .heightIn(min = 18.dp),
                 style = androidx.compose.ui.text.TextStyle(
-                    textDirection = TextDirection.ContentOrRtl,
+                    textDirection = TextDirection.Content,
                     lineHeight = 18.sp
                 ),
                 color = BrandAccent,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.End,
+                textAlign = TextAlign.Start,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )

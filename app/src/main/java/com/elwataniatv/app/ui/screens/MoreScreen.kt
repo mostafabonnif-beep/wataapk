@@ -70,8 +70,9 @@ fun MoreScreen(
     onMarkNotificationRead: (String) -> Unit = {},
     onMarkAllNotificationsRead: () -> Unit = {},
     onOpenNotification: (String) -> Unit = {},
-    appVersion: String = ""
+    appVersion: String = com.elwataniatv.app.BuildConfig.VERSION_NAME
 ) {
+    val dynamicVersion = appVersion.ifBlank { com.elwataniatv.app.BuildConfig.VERSION_NAME }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
 
@@ -207,7 +208,7 @@ fun MoreScreen(
         item {
             MoreOptionCard(
                 title = stringResource(R.string.more_about_title),
-                subtitle = if (appVersion.isNotBlank()) stringResource(R.string.more_version, appVersion) else stringResource(R.string.more_about_subtitle),
+                subtitle = if (dynamicVersion.isNotBlank()) stringResource(R.string.more_version, dynamicVersion) else stringResource(R.string.more_about_subtitle),
                 icon = Icons.Default.Info,
                 iconTint = BrandAccent,
                 onClick = { showAboutDialog = true }
@@ -267,14 +268,14 @@ fun MoreScreen(
                     Text(
                         text = stringResource(R.string.more_about_body),
                         color = Color.White.copy(alpha = 0.85f),
-                        style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.ContentOrRtl),
+                        style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content),
                         fontSize = 13.sp,
                         lineHeight = 20.sp,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Start
                     )
-                    if (appVersion.isNotBlank()) {
+                    if (dynamicVersion.isNotBlank()) {
                         Text(
-                            text = stringResource(R.string.more_version, appVersion),
+                            text = stringResource(R.string.more_version, dynamicVersion),
                             color = BrandAccent,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
@@ -390,24 +391,24 @@ private fun MoreOptionCard(
                 Text(
                     text = title,
                     modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.titleSmall.copy(textDirection = TextDirection.ContentOrRtl),
+                    style = MaterialTheme.typography.titleSmall.copy(textDirection = TextDirection.Content),
                     color = Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.End
+                    textAlign = TextAlign.Start
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = subtitle,
                     modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.ContentOrRtl),
+                    style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.Content),
                     color = Color.White.copy(alpha = 0.6f),
                     fontSize = 10.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.End
+                    textAlign = TextAlign.Start
                 )
             }
 

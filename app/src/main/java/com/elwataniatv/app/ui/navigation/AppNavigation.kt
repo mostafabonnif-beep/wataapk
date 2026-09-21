@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.OndemandVideo
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
@@ -16,6 +17,7 @@ import com.elwataniatv.app.R
 sealed class Screen(val route: String, val titleRes: Int, val icon: ImageVector) {
     object Live : Screen("live", R.string.tab_live, Icons.Default.LiveTv)
     object Archive : Screen("archive", R.string.tab_archive, Icons.Default.OndemandVideo)
+    object News : Screen("news", R.string.tab_news, Icons.Default.Newspaper)
     object Favorites : Screen("favorites", R.string.tab_favorites, Icons.Default.Bookmark)
     object Websites : Screen("websites", R.string.tab_websites, Icons.Default.Language)
     object More : Screen("more", R.string.tab_more, Icons.Default.MoreHoriz)

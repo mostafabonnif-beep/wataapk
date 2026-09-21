@@ -25,6 +25,7 @@ class MainViewModel @Inject constructor(
     val popupAlert = repository.popupAlert
     val adminSecurity = repository.adminSecurity
     val syncStatus = repository.syncStatus
+    val syncError = repository.syncError
 
     private val _pendingNavigation = MutableStateFlow<String?>(null)
     val pendingNavigation: StateFlow<String?> = _pendingNavigation.asStateFlow()

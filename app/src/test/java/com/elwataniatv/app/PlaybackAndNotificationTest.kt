@@ -23,6 +23,20 @@ class PlaybackAndNotificationTest {
         return false
     }
 
+    private fun isUpdateAvailable(
+        currentCode: Int,
+        currentVersionName: String,
+        targetVersion: String
+    ): Boolean {
+        if (targetVersion.isBlank()) return false
+        val trimmed = targetVersion.trim()
+        val targetCode = trimmed.toIntOrNull()
+        if (targetCode != null) {
+            return currentCode < targetCode
+        }
+        return isVersionLessThan(currentVersionName, trimmed)
+    }
+
     private fun calculateExponentialBackoffMs(retryCount: Int): Long {
         val boundedCount = retryCount.coerceAtMost(5)
         return 1000L * (1 shl (boundedCount - 1))
@@ -35,6 +49,24 @@ class PlaybackAndNotificationTest {
         assertFalse(isVersionLessThan("7.1.2", "7.1.2"))
         assertFalse(isVersionLessThan("7.1.2", "7.1.1"))
         assertFalse(isVersionLessThan("7.1.2", ""))
+    }
+
+    @Test
+    fun updateCheck_v860_handlesNumericAndSemanticVersions() {
+        val currentCode = 30
+        val currentVersionName = "8.6.0"
+
+        // Older or equal versions must NOT trigger an update alert
+        assertFalse(isUpdateAvailable(currentCode, currentVersionName, "8.1.7"))
+        assertFalse(isUpdateAvailable(currentCode, currentVersionName, "8.6.0"))
+        assertFalse(isUpdateAvailable(currentCode, currentVersionName, "30"))
+        assertFalse(isUpdateAvailable(currentCode, currentVersionName, "24"))
+        assertFalse(isUpdateAvailable(currentCode, currentVersionName, ""))
+
+        // Newer versions must trigger an update alert
+        assertTrue(isUpdateAvailable(currentCode, currentVersionName, "35"))
+        assertTrue(isUpdateAvailable(currentCode, currentVersionName, "8.7.0"))
+        assertTrue(isUpdateAvailable(currentCode, currentVersionName, "9.0.0"))
     }
 
     @Test

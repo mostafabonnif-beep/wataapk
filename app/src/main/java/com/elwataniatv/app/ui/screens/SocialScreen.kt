@@ -1,20 +1,31 @@
 package com.elwataniatv.app.ui.screens
 
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
@@ -48,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import com.elwataniatv.app.R
+import com.elwataniatv.app.data.model.RemoteAppConfig
 import com.elwataniatv.app.data.model.SocialPage
 import com.elwataniatv.app.ui.theme.BrandAccent
 import com.elwataniatv.app.util.safeHttpUri
@@ -312,6 +324,8 @@ fun PlatformIcon(
 @Composable
 fun SocialScreen(
     socialPages: List<SocialPage>,
+    appConfig: RemoteAppConfig? = null,
+    onSubmitFeedback: ((type: String, message: String, email: String, onResult: (Boolean, String?) -> Unit) -> Unit)? = null,
     isLoading: Boolean = false,
     hasError: Boolean = false,
     onRetrySync: (() -> Unit)? = null,
@@ -325,6 +339,16 @@ fun SocialScreen(
             .filter { it.isActive && isValidSocialUrl(it.url) }
             .sortedWith(compareBy<SocialPage> { it.order }.thenBy { it.name.lowercase() })
     }
+
+    val hasDirectChannels = remember(appConfig) {
+        appConfig != null && (
+            appConfig.contactEmail.isNotBlank() ||
+            appConfig.whatsappUrl.isNotBlank() ||
+            appConfig.officialWebsite.isNotBlank()
+        )
+    }
+
+    val isCompletelyEmpty = validSocialPages.isEmpty() && !hasDirectChannels && onSubmitFeedback == null
 
     Column(
         modifier = modifier
@@ -375,7 +399,7 @@ fun SocialScreen(
                         horizontalAlignment = Alignment.End
                     ) {
                         Text(
-                            text = stringResource(R.string.social_title),
+                            text = stringResource(R.string.tab_social),
                             modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.titleMedium,
                             fontSize = 15.sp,
@@ -383,17 +407,17 @@ fun SocialScreen(
                             overflow = TextOverflow.Ellipsis,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.End
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Start
                         )
                         Text(
-                            text = stringResource(R.string.social_subtitle),
+                            text = stringResource(R.string.contact_form_subtitle),
                             modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.bodySmall,
                             fontSize = 11.sp,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             color = Color.White.copy(alpha = 0.6f),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.End
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Start
                         )
                     }
                 }
@@ -420,20 +444,20 @@ fun SocialScreen(
             }
         }
 
-        // Screen States: Loading, Error, Empty, List
+        // Screen States: Loading, Error, Empty, Content
         when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp),
-                    contentAlignment = Alignment.Center
+            isLoading && isCompletelyEmpty -> {
+                LazyColumn(
+                    contentPadding = PaddingValues(start = 14.dp, top = 12.dp, end = 14.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.testTag("social_loading_state")
                 ) {
-                    CircularProgressIndicator(color = BrandAccent)
+                    item { ContactSkeletonCard() }
+                    items(4) { SocialSkeletonCard() }
                 }
             }
 
-            hasError -> {
+            hasError && isCompletelyEmpty -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -484,7 +508,7 @@ fun SocialScreen(
                 }
             }
 
-            validSocialPages.isEmpty() -> {
+            isCompletelyEmpty -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -503,22 +527,23 @@ fun SocialScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = stringResource(R.string.tab_social),
+                                imageVector = Icons.Default.Feedback,
+                                contentDescription = stringResource(R.string.contact_form_not_configured),
                                 tint = Color.White.copy(alpha = 0.4f),
                                 modifier = Modifier.size(26.dp)
                             )
                         }
                         Text(
-                            text = stringResource(R.string.social_empty),
+                            text = stringResource(R.string.contact_form_not_configured),
                             color = Color.White,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = stringResource(R.string.social_empty_hint),
+                            text = stringResource(R.string.contact_form_not_configured_hint),
                             color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         if (onRetrySync != null) {
                             Button(
@@ -536,120 +561,560 @@ fun SocialScreen(
             }
 
             else -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 280.dp),
-                    contentPadding = PaddingValues(start = 14.dp, top = 12.dp, end = 14.dp, bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                LazyColumn(
+                    contentPadding = PaddingValues(start = 14.dp, top = 12.dp, end = 14.dp, bottom = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.testTag("social_list")
                 ) {
-                    items(validSocialPages, key = { it.id }) { page ->
-                        val platformColor = parsePlatformColor(page.platform, page.color)
-                        val visualPlatformColor = if (normalizePlatformKey(page.platform) == "x") Color.White else platformColor
-                        val logoUrlToLoad = remember(page.logoUrl, page.platform, page.url) { deriveSocialLogoUrl(page) }
-                        val contentDesc = stringResource(R.string.social_visit_page) + ": " + page.platform
-                        val openFailedMessage = stringResource(R.string.social_open_failed)
-                        val invalidUrlMessage = stringResource(R.string.social_invalid_url)
-                        val openPage: () -> Unit = {
-                            val safeUri = safeHttpUri(page.url)
-                            if (safeUri == null) {
-                                Toast.makeText(context, invalidUrlMessage, Toast.LENGTH_SHORT).show()
-                            } else {
-                                runCatching {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, safeUri))
-                                }.onFailure {
-                                    Toast.makeText(context, openFailedMessage, Toast.LENGTH_SHORT).show()
+                    // Direct Contact Channels (Email, WhatsApp, Website)
+                    if (hasDirectChannels && appConfig != null) {
+                        item(key = "direct_contact_card") {
+                            DirectContactCard(
+                                appConfig = appConfig,
+                                onOpenUrl = { url ->
+                                    val safeUri = safeHttpUri(url)
+                                    if (safeUri != null) {
+                                        runCatching {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, safeUri))
+                                        }.onFailure {
+                                            Toast.makeText(context, context.getString(R.string.social_open_failed), Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                onSendEmail = { email ->
+                                    runCatching {
+                                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                            data = Uri.parse("mailto:$email")
+                                            putExtra(Intent.EXTRA_SUBJECT, "تواصل مع الوطنية TV")
+                                        }
+                                        context.startActivity(intent)
+                                    }.onFailure {
+                                        Toast.makeText(context, email, Toast.LENGTH_LONG).show()
+                                    }
                                 }
-                            }
+                            )
                         }
+                    }
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(BrandPanel)
-                                .border(1.dp, visualPlatformColor.copy(alpha = 0.24f), RoundedCornerShape(18.dp))
-                                .semantics { contentDescription = contentDesc }
-                                .padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
+                    // In-App Contact & Feedback Form
+                    if (onSubmitFeedback != null) {
+                        item(key = "in_app_contact_form") {
+                            ContactFormCard(onSubmit = onSubmitFeedback)
+                        }
+                    }
+
+                    // Section Title for Social Channels
+                    if (validSocialPages.isNotEmpty()) {
+                        item(key = "social_section_header") {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(58.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(visualPlatformColor.copy(alpha = 0.16f))
-                                        .border(1.dp, visualPlatformColor.copy(alpha = 0.45f), RoundedCornerShape(16.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    PlatformIcon(
-                                        platform = page.platform,
-                                        logoUrl = logoUrlToLoad,
-                                        contentDescription = contentDesc,
-                                        tintColor = visualPlatformColor,
-                                        modifier = Modifier.size(34.dp)
-                                    )
-                                }
-                                Surface(
-                                    color = visualPlatformColor.copy(alpha = 0.16f),
-                                    shape = RoundedCornerShape(20.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                    ) {
-                                        Icon(Icons.Default.Verified, contentDescription = stringResource(R.string.social_official_page), tint = visualPlatformColor, modifier = Modifier.size(15.dp))
-                                        Text(
-                                            text = page.platform.ifBlank { stringResource(R.string.tab_social) },
-                                            style = MaterialTheme.typography.labelSmall.copy(textDirection = TextDirection.ContentOrRtl),
-                                            color = visualPlatformColor,
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                Text(
+                                    text = stringResource(R.string.social_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = stringResource(R.string.social_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+
+                        items(validSocialPages, key = { it.id }) { page ->
+                            val platformColor = parsePlatformColor(page.platform, page.color)
+                            val visualPlatformColor = if (normalizePlatformKey(page.platform) == "x") Color.White else platformColor
+                            val logoUrlToLoad = remember(page.logoUrl, page.platform, page.url) { deriveSocialLogoUrl(page) }
+                            val contentDesc = stringResource(R.string.social_visit_page) + ": " + page.platform
+                            val openFailedMessage = stringResource(R.string.social_open_failed)
+                            val invalidUrlMessage = stringResource(R.string.social_invalid_url)
+                            val openPage: () -> Unit = {
+                                val safeUri = safeHttpUri(page.url)
+                                if (safeUri == null) {
+                                    Toast.makeText(context, invalidUrlMessage, Toast.LENGTH_SHORT).show()
+                                } else {
+                                    runCatching {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, safeUri))
+                                    }.onFailure {
+                                        Toast.makeText(context, openFailedMessage, Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             }
 
-                            Text(
-                                text = page.name.ifBlank { page.platform.ifBlank { stringResource(R.string.tab_social) } },
-                                modifier = Modifier.fillMaxWidth(),
-                                style = MaterialTheme.typography.titleMedium.copy(textDirection = TextDirection.ContentOrRtl),
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.End
-                            )
-                            Text(
-                                text = page.description.ifBlank { stringResource(R.string.social_visit_page) },
-                                modifier = Modifier.fillMaxWidth(),
-                                style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.ContentOrRtl),
-                                color = Color.White.copy(alpha = 0.64f),
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.End
-                            )
-                            Button(
-                                onClick = openPage,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = visualPlatformColor),
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(vertical = 9.dp)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(BrandPanel)
+                                    .border(1.dp, visualPlatformColor.copy(alpha = 0.24f), RoundedCornerShape(18.dp))
+                                    .semantics { contentDescription = contentDesc }
+                                    .padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = stringResource(R.string.social_visit_page), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(stringResource(R.string.social_visit_page), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(visualPlatformColor.copy(alpha = 0.16f))
+                                            .border(1.dp, visualPlatformColor.copy(alpha = 0.45f), RoundedCornerShape(14.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        PlatformIcon(
+                                            platform = page.platform,
+                                            logoUrl = logoUrlToLoad,
+                                            contentDescription = contentDesc,
+                                            tintColor = visualPlatformColor,
+                                            modifier = Modifier.size(30.dp)
+                                        )
+                                    }
+                                    Surface(
+                                        color = visualPlatformColor.copy(alpha = 0.16f),
+                                        shape = RoundedCornerShape(20.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                        ) {
+                                            Icon(Icons.Default.Verified, contentDescription = stringResource(R.string.social_official_page), tint = visualPlatformColor, modifier = Modifier.size(15.dp))
+                                            Text(
+                                                text = page.platform.ifBlank { stringResource(R.string.tab_social) },
+                                                style = MaterialTheme.typography.labelSmall.copy(textDirection = TextDirection.ContentOrRtl),
+                                                color = visualPlatformColor,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Text(
+                                    text = page.name.ifBlank { page.platform.ifBlank { stringResource(R.string.tab_social) } },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = MaterialTheme.typography.titleMedium.copy(textDirection = TextDirection.Content),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Start
+                                )
+                                Text(
+                                    text = page.description.ifBlank { stringResource(R.string.social_visit_page) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.Content),
+                                    color = Color.White.copy(alpha = 0.64f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Start
+                                )
+                                Button(
+                                    onClick = openPage,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = visualPlatformColor),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(vertical = 9.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = stringResource(R.string.social_visit_page), modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(stringResource(R.string.social_visit_page), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun DirectContactCard(
+    appConfig: RemoteAppConfig,
+    onOpenUrl: (String) -> Unit,
+    onSendEmail: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(BrandPanel)
+            .border(1.dp, BrandBorder, RoundedCornerShape(18.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Email, contentDescription = stringResource(R.string.contact_direct_channels), tint = BrandAccent, modifier = Modifier.size(20.dp))
+            Text(
+                text = stringResource(R.string.contact_direct_channels),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        if (appConfig.contactEmail.isNotBlank()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .clickable { onSendEmail(appConfig.contactEmail) }
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "البريد الإلكتروني الرسمي", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                    Text(text = appConfig.contactEmail, style = MaterialTheme.typography.bodyMedium, color = BrandAccent, fontWeight = FontWeight.Bold)
+                }
+                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = appConfig.contactEmail, tint = BrandAccent, modifier = Modifier.size(18.dp))
+            }
+        }
+
+        if (appConfig.whatsappUrl.isNotBlank()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF25D366).copy(alpha = 0.12f))
+                    .clickable { onOpenUrl(appConfig.whatsappUrl) }
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "خدمة المشاهدين عبر واتساب", style = MaterialTheme.typography.bodySmall, color = Color(0xFF25D366))
+                    Text(text = "مراسلة مباشرة مع فريق القناة", style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "WhatsApp", tint = Color(0xFF25D366), modifier = Modifier.size(18.dp))
+            }
+        }
+
+        if (appConfig.officialWebsite.isNotBlank()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .clickable { onOpenUrl(appConfig.officialWebsite) }
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "الموقع الرسمي للقناة", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                    Text(text = appConfig.officialWebsite, style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+                Icon(Icons.Default.Language, contentDescription = "Website", tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun ContactFormCard(
+    onSubmit: (type: String, message: String, email: String, onResult: (Boolean, String?) -> Unit) -> Unit
+) {
+    var selectedType by remember { mutableStateOf("general") }
+    var emailText by remember { mutableStateOf("") }
+    var messageText by remember { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) }
+    var submittedSuccess by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val types = listOf(
+        "general" to stringResource(R.string.contact_form_type_general),
+        "suggestion" to stringResource(R.string.contact_form_type_suggestion),
+        "bug" to stringResource(R.string.contact_form_type_bug),
+        "content" to stringResource(R.string.contact_form_type_content)
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(BrandPanel)
+            .border(1.dp, BrandBorder, RoundedCornerShape(18.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Feedback, contentDescription = stringResource(R.string.contact_form_title), tint = BrandAccent, modifier = Modifier.size(20.dp))
+            Text(
+                text = stringResource(R.string.contact_form_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+        Text(
+            text = stringResource(R.string.contact_form_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.6f)
+        )
+
+        AnimatedVisibility(visible = submittedSuccess) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFF2E7D32).copy(alpha = 0.2f))
+                    .border(1.dp, Color(0xFF4CAF50), RoundedCornerShape(10.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                Text(
+                    text = stringResource(R.string.contact_form_sent_success),
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        // Type selection chips
+        Text(text = stringResource(R.string.contact_form_type_label), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            types.forEach { (typeKey, typeLabel) ->
+                val isSelected = selectedType == typeKey
+                Surface(
+                    color = if (isSelected) BrandPrimary else Color.White.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { selectedType = typeKey }
+                ) {
+                    Text(
+                        text = typeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.8f),
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 2.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+
+        OutlinedTextField(
+            value = emailText,
+            onValueChange = { emailText = it },
+            label = { Text(stringResource(R.string.contact_form_email_label), fontSize = 12.sp) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(10.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = BrandAccent,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            )
+        )
+
+        OutlinedTextField(
+            value = messageText,
+            onValueChange = { messageText = it },
+            label = { Text(stringResource(R.string.contact_form_message_label), fontSize = 12.sp) },
+            placeholder = { Text(stringResource(R.string.contact_form_message_hint), fontSize = 12.sp, color = Color.White.copy(alpha = 0.4f)) },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            maxLines = 6,
+            shape = RoundedCornerShape(10.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = BrandAccent,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            )
+        )
+
+        Button(
+            onClick = {
+                val msg = messageText.trim()
+                if (msg.isBlank()) {
+                    Toast.makeText(context, context.getString(R.string.contact_form_message_hint), Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+                isSubmitting = true
+                onSubmit(selectedType, msg, emailText.trim()) { success, err ->
+                    isSubmitting = false
+                    if (success) {
+                        submittedSuccess = true
+                        messageText = ""
+                        Toast.makeText(context, context.getString(R.string.contact_form_sent_success), Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(context, err ?: context.getString(R.string.social_load_error), Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            enabled = !isSubmitting && messageText.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            if (isSubmitting) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.contact_form_sending), fontSize = 13.sp)
+            } else {
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(stringResource(R.string.contact_form_send_btn), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun ContactSkeletonCard() {
+    val infiniteTransition = rememberInfiniteTransition(label = "contact_shimmer")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.15f,
+        targetValue = 0.45f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(BrandPanel)
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.5f)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(70.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(38.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
+        }
+    }
+}
+
+@Composable
+fun SocialSkeletonCard() {
+    val infiniteTransition = rememberInfiniteTransition(label = "social_shimmer")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.15f,
+        targetValue = 0.45f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(BrandPanel)
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = alpha))
+                )
+                Box(
+                    modifier = Modifier
+                        .width(60.dp)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.White.copy(alpha = alpha))
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
         }
     }
 }

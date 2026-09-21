@@ -246,7 +246,7 @@ fun ArchiveScreen(
                             color = Color.White,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.End
+                            textAlign = TextAlign.Start
                         )
                         Text(
                             text = stringResource(R.string.archive_subtitle),
@@ -255,7 +255,7 @@ fun ArchiveScreen(
                             color = Color.White.copy(alpha = 0.6f),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.End
+                            textAlign = TextAlign.Start
                         )
                     }
                 }
@@ -356,8 +356,8 @@ fun ArchiveScreen(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    text = if (cat == ALL_CATEGORY) stringResource(R.string.all_categories) else cat,
-                                    style = MaterialTheme.typography.labelMedium.copy(textDirection = TextDirection.ContentOrRtl),
+                                    text = getLocalizedCategoryName(cat),
+                                    style = MaterialTheme.typography.labelMedium.copy(textDirection = TextDirection.Content),
                                     color = if (isSelected) Color.White else Color.White.copy(alpha = 0.8f),
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -384,19 +384,19 @@ fun ArchiveScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    Column(horizontalAlignment = Alignment.End) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(R.string.continue_watching_title),
                             color = Color.White,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.End
+                            textAlign = TextAlign.Start
                         )
                         Text(
                             text = stringResource(R.string.continue_watching_subtitle),
                             color = Color.White.copy(alpha = 0.55f),
                             fontSize = 11.sp,
-                            textAlign = TextAlign.End
+                            textAlign = TextAlign.Start
                         )
                     }
                     Icon(
@@ -629,12 +629,14 @@ fun ArchiveScreen(
         // Content States: Skeleton Loading, Error State, Empty State or Programs List
         when {
             isLoading -> {
-                LazyColumn(
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 340.dp),
                     modifier = Modifier.testTag("archive_loading_state"),
                     contentPadding = PaddingValues(start = 14.dp, top = 10.dp, end = 14.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(9.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(5) {
+                    items(6) {
                         ArchiveSkeletonCard()
                     }
                 }
@@ -750,10 +752,10 @@ fun ArchiveScreen(
 
             else -> {
                 LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 300.dp),
+                    columns = GridCells.Adaptive(minSize = 340.dp),
                     contentPadding = PaddingValues(start = 14.dp, top = 10.dp, end = 14.dp, bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("archive_program_list")
@@ -958,8 +960,8 @@ fun ArchiveScreen(
                         lineHeight = 22.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl),
-                        textAlign = TextAlign.End
+                        style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.Content),
+                        textAlign = TextAlign.Start
                     )
 
                     // Meta Row (Date & Duration)
@@ -1019,11 +1021,11 @@ fun ArchiveScreen(
                         Text(
                             text = prog.description,
                             modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.ContentOrRtl),
+                            style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content),
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 14.sp,
                             lineHeight = 20.sp,
-                            textAlign = TextAlign.End
+                            textAlign = TextAlign.Start
                         )
                     }
 

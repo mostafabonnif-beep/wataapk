@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccessTime
@@ -39,6 +40,7 @@ import com.elwataniatv.app.ui.components.algeriaMinutesOfDay
 import com.elwataniatv.app.ui.components.currentEpgItem
 import com.elwataniatv.app.ui.components.minutesRemainingEpg
 import com.elwataniatv.app.ui.components.nextEpgItem
+import com.elwataniatv.app.ui.screens.archive.getLocalizedCategoryName
 import com.elwataniatv.app.ui.theme.BrandAccent
 import com.elwataniatv.app.ui.theme.BrandBg
 import com.elwataniatv.app.ui.theme.BrandPanel
@@ -80,7 +82,7 @@ fun EpgGuideScreen(
 
     val sortedPrograms = remember(epgList) {
         epgList
-            .filter { it.isActive }
+            .filter { it.isActive && com.elwataniatv.app.util.ContentSanitizer.isUsable(it.title) }
             .sortedWith(compareBy({ it.startTime }, { it.order }))
     }
     val currentItem = remember(sortedPrograms, nowMinutes, dayOffset) {
@@ -101,7 +103,7 @@ fun EpgGuideScreen(
         ) {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.back),
                     tint = Color.White
                 )
@@ -318,11 +320,11 @@ private fun GuideRow(
                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl)
+                    style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.Content)
                 )
                 if (program.category.isNotBlank()) {
                     Text(
-                        text = program.category,
+                        text = getLocalizedCategoryName(program.category),
                         color = BrandAccent.copy(alpha = if (isPast) 0.5f else 0.9f),
                         fontSize = 11.sp,
                         maxLines = 1,
@@ -399,7 +401,7 @@ private fun ProgramDetailsDialog(
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Black,
-                    style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl)
+                    style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.Content)
                 )
                 if (program.category.isNotBlank()) {
                     Surface(
@@ -407,7 +409,7 @@ private fun ProgramDetailsDialog(
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
-                            text = program.category,
+                            text = getLocalizedCategoryName(program.category),
                             color = BrandAccent,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -466,7 +468,7 @@ private fun ProgramDetailsDialog(
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 13.sp,
                             lineHeight = 20.sp,
-                            style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl)
+                            style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.Content)
                         )
                     }
                 }

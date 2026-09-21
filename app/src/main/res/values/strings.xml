@@ -18,6 +18,7 @@
     <string name="empty"></string>
     <string name="app_slogan">Algeria pulse in your heart</string>
     <string name="tab_live">Live</string>
+    <string name="tab_news">News</string>
     <string name="tab_archive">Archive</string>
     <string name="tab_favorites">Favorites</string>
     <string name="tab_more">More</string>
@@ -58,13 +59,29 @@
     </plurals>
     <string name="social_load_error">Unable to load social media pages</string>
     <string name="social_check_connection">Check your internet connection and try again</string>
-    <string name="social_empty">No social platforms have been added yet</string>
-    <string name="social_empty_hint">The channel’s official accounts will appear here when available</string>
+    <string name="social_empty">Contact form has not been configured yet</string>
+    <string name="social_empty_hint">The channel administrator can configure the contact form and social accounts from the admin panel</string>
     <string name="social_refresh_list">Refresh list</string>
     <string name="social_open_failed">Unable to open platform link</string>
     <string name="social_invalid_url">Invalid platform link</string>
     <string name="social_official_page">Verified official page</string>
     <string name="social_visit_page">Visit official page</string>
+    <string name="contact_form_title">Contact Channel Administration</string>
+    <string name="contact_form_subtitle">Send your feedback, suggestions or inquiries directly to the channel</string>
+    <string name="contact_form_type_label">Message Type</string>
+    <string name="contact_form_type_suggestion">Suggestion</string>
+    <string name="contact_form_type_bug">Report Issue</string>
+    <string name="contact_form_type_content">Programme Feedback</string>
+    <string name="contact_form_type_general">General Inquiry</string>
+    <string name="contact_form_email_label">Email for reply (optional)</string>
+    <string name="contact_form_message_label">Message content</string>
+    <string name="contact_form_message_hint">Type your message or suggestion here...</string>
+    <string name="contact_form_send_btn">Send Message</string>
+    <string name="contact_form_sending">Sending message...</string>
+    <string name="contact_form_sent_success">Your message has been sent successfully. Thank you!</string>
+    <string name="contact_form_not_configured">Contact form has not been configured yet</string>
+    <string name="contact_form_not_configured_hint">The contact form and direct support channels have not been enabled in the admin panel</string>
+    <string name="contact_direct_channels">Direct Contact Channels</string>
     <string name="tab_settings">Settings</string>
     <string name="more_title">More</string>
     <string name="more_subtitle">Everything you may need after watching</string>
@@ -383,4 +400,12 @@
     <string name="guide_yesterday">Yesterday</string>
     <string name="guide_tomorrow">Tomorrow</string>
     <string name="onboarding_live_badge">Live now · 24/7</string>
+    <string name="category_news">News</string>
+    <string name="category_sports">Sports</string>
+    <string name="category_culture">Culture</string>
+    <string name="category_economy">Economy</string>
+    <string name="category_documentary">Documentary</string>
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_programs">Programs</string>
+    <string name="category_other">Other</string>
 </resources>

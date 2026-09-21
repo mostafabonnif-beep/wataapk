@@ -28,16 +28,20 @@ import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -74,6 +78,7 @@ import com.elwataniatv.app.ui.components.PremiumLiveHero
 import com.elwataniatv.app.ui.components.PremiumSectionHeader
 import com.elwataniatv.app.ui.components.EpgStrip
 import com.elwataniatv.app.ui.components.algeriaMinutesOfDay
+import com.elwataniatv.app.ui.components.currentEpgItem
 import com.elwataniatv.app.ui.components.nextEpgItem
 import com.elwataniatv.app.ui.components.VideoPlayerView
 import com.elwataniatv.app.ui.theme.BrandAccent
@@ -162,6 +167,16 @@ fun LiveScreen(
             isRefreshing = true
             onRetrySync()
         }
+    }
+
+    val cleanLiveEpg = remember(epgList) {
+        epgList.filter { it.isActive && ContentSanitizer.isUsable(it.title) }
+    }
+    val currentShow = remember(cleanLiveEpg) {
+        currentEpgItem(cleanLiveEpg, algeriaMinutesOfDay())
+    }
+    val cleanNextEpg = remember(cleanLiveEpg) {
+        nextEpgItem(cleanLiveEpg, algeriaMinutesOfDay())
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -273,88 +288,113 @@ fun LiveScreen(
                         }
                     }
 
-                    // Channel Stream Switcher: always RTL so ordering is stable across device locales.
+                    // Broadcast Channel Deck: Header with actions + Studio Channel Cards
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                        LazyRow(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .testTag("channel_switcher")
-                                .padding(top = 10.dp, bottom = 6.dp),
-                            state = streamRowState,
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(top = 10.dp, bottom = 4.dp)
                         ) {
-                            items(streams, key = { it.id }) { item ->
-                                val isSelected = item.id == selectedStream.id
-                                val streamTitle = item.title.trim().ifBlank { stringResource(R.string.default_live_stream_title) }
-                                val streamSelectionDescription = stringResource(R.string.select_stream, streamTitle)
-                                Surface(
-                                    modifier = Modifier
-                                        .widthIn(min = 132.dp, max = 240.dp)
-                                        .alpha(if (switchingStreamId != null && switchingStreamId != item.id) 0.72f else 1f)
-                                        .clickable(enabled = switchingStreamId == null) {
-                                            if (item.id != selectedStream.id) {
-                                                switchingStreamId = item.id
-                                                onSelectStream(item)
-                                            }
+                            // Deck Header: Title & Action Controls
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Channel Deck Identity
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Surface(
+                                        color = BrandPrimary.copy(alpha = 0.18f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandPrimary.copy(alpha = 0.4f)),
+                                        modifier = Modifier.size(30.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.LiveTv,
+                                                contentDescription = null,
+                                                tint = BrandPrimary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
                                         }
-                                        .semantics {
-                                            contentDescription = streamSelectionDescription
-                                        },
-                                    shape = RoundedCornerShape(50),
-                                    color = if (isSelected) BrandPrimary else BrandPanel.copy(alpha = 0.5f)
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "القنوات الفضائية المباشرة",
+                                            color = Color.White,
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "${streams.size} قنوات متوفرة بجودة عالية",
+                                            color = Color.White.copy(alpha = 0.6f),
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+
+                                // Quick Share Action Button
+                                Surface(
+                                    onClick = { onShareLive(activeStream) },
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color.White.copy(alpha = 0.08f),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.16f))
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                                     ) {
-                                        if (isSelected) {
-                                            Surface(
-                                                color = Color.White,
-                                                shape = CircleShape,
-                                                modifier = Modifier.size(6.dp)
-                                            ) {}
-                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.Share,
+                                            contentDescription = stringResource(R.string.share_live),
+                                            tint = Color.White,
+                                            modifier = Modifier.size(13.dp)
+                                        )
                                         Text(
-                                            text = streamTitle,
-                                            style = LocalTextStyle.current.copy(textDirection = TextDirection.ContentOrRtl),
-                                            color = if (isSelected) Color.White else TextSecondary,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            overflow = TextOverflow.Ellipsis,
-                                            textAlign = TextAlign.Center
+                                            text = stringResource(R.string.share_live),
+                                            color = Color.White,
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.SemiBold
                                         )
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    // Share the active live stream (respects RTL layout order).
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(onClick = { onShareLive(activeStream) }) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = stringResource(R.string.share_live),
-                                tint = BrandAccent,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(R.string.share_live),
-                                color = BrandAccent,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            // Channel Cards Row
+                            LazyRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("channel_switcher")
+                                    .padding(top = 8.dp, bottom = 4.dp),
+                                state = streamRowState,
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(streams, key = { it.id }) { item ->
+                                    val isSelected = item.id == selectedStream.id
+                                    val isSwitching = switchingStreamId == item.id
+                                    BroadcastChannelCard(
+                                        item = item,
+                                        isSelected = isSelected,
+                                        isSwitching = isSwitching,
+                                        disabled = switchingStreamId != null,
+                                        onClick = {
+                                            if (item.id != selectedStream.id) {
+                                                switchingStreamId = item.id
+                                                onSelectStream(item)
+                                            }
+                                        },
+                                        modifier = Modifier.alpha(if (switchingStreamId != null && !isSwitching) 0.65f else 1f)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -367,6 +407,8 @@ fun LiveScreen(
                         appName = appName,
                         appSlogan = appSlogan,
                         logoUrl = logoUrl,
+                        currentProgramTitle = currentShow?.title,
+                        backdropUrl = logoUrl,
                         onWatchLive = {
                             streams.firstOrNull()?.let(onSelectStream)
                         },
@@ -395,12 +437,14 @@ fun LiveScreen(
             }
         }
 
-        item {
-            HomeNextProgramCard(
-                nextProgram = nextEpgItem(epgList, algeriaMinutesOfDay()),
-                logoUrl = logoUrl,
-                onOpenGuide = onOpenGuide
-            )
+        if (cleanNextEpg != null) {
+            item {
+                HomeNextProgramCard(
+                    nextProgram = cleanNextEpg,
+                    logoUrl = logoUrl,
+                    onOpenGuide = onOpenGuide
+                )
+            }
         }
 
         item {
@@ -637,36 +681,7 @@ fun LiveScreen(
             }
         }
 
-        // Legal & Copyright Disclaimer Footer
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.03f)),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.official_broadcast_footer),
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = stringResource(R.string.broadcast_rights_reserved),
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
+
         }
     }
 }
@@ -969,6 +984,71 @@ private fun HomeLatestNewsSection(
     val justNow = stringResource(R.string.home_news_just_now)
     val recent = stringResource(R.string.home_news_recent)
 
+    var showAllNews by remember { mutableStateOf(false) }
+
+    if (showAllNews) {
+        AlertDialog(
+            onDismissRequest = { showAllNews = false },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.news_bulletin_urgent),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    TextButton(onClick = { showAllNews = false }) {
+                        Text(stringResource(R.string.more_done), color = BrandAccent)
+                    }
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 450.dp)
+                ) {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(activeNews) { article ->
+                            NewsItemRow(
+                                category = article.summary.ifBlank { defaultNewsCategory },
+                                title = article.title,
+                                time = recent,
+                                thumbnailUrl = article.imageUrl,
+                                onClick = {
+                                    if (article.url.isNotBlank()) {
+                                        onOpenNewsUrl(article.url)
+                                    }
+                                }
+                            )
+                        }
+                        if (activeNews.isEmpty() && playablePrograms.isNotEmpty()) {
+                            items(playablePrograms) { program ->
+                                NewsItemRow(
+                                    category = program.category.ifBlank { defaultNewsCategory },
+                                    title = program.title,
+                                    time = com.elwataniatv.app.util.DateFmt.smartDate(program.date),
+                                    thumbnailUrl = program.thumbnailUrl,
+                                    onClick = { onOpenYouTube(program.youtubeUrl) }
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            containerColor = BrandPanel,
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -994,7 +1074,7 @@ private fun HomeLatestNewsSection(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .heightIn(min = 48.dp)
-                    .clickable { onOpenYouTube(firstVideoUrl) }
+                    .clickable { showAllNews = true }
                     .padding(horizontal = 8.dp, vertical = 4.dp)
                     .semantics { contentDescription = openNewsDescription },
                 verticalAlignment = Alignment.CenterVertically,
@@ -1242,6 +1322,267 @@ fun HomeArchiveCard(
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LiveEqualizerBars(
+    color: Color = Color(0xFF22C55E),
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "equalizer")
+    val h1 by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "h1"
+    )
+    val h2 by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 0.25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(360, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "h2"
+    )
+    val h3 by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(480, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "h3"
+    )
+
+    Row(
+        modifier = modifier.size(width = 12.dp, height = 11.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Box(modifier = Modifier.width(2.dp).fillMaxHeight(h1).background(color, RoundedCornerShape(1.dp)))
+        Box(modifier = Modifier.width(2.dp).fillMaxHeight(h2).background(color, RoundedCornerShape(1.dp)))
+        Box(modifier = Modifier.width(2.dp).fillMaxHeight(h3).background(color, RoundedCornerShape(1.dp)))
+    }
+}
+
+@Composable
+private fun BroadcastChannelCard(
+    item: RemoteStream,
+    isSelected: Boolean,
+    isSwitching: Boolean,
+    disabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val streamTitle = item.title.trim().ifBlank { stringResource(R.string.default_live_stream_title) }
+    val streamSelectionDescription = stringResource(R.string.select_stream, streamTitle)
+
+    val isSport = remember(item.id, item.title) {
+        item.id.contains("sport", ignoreCase = true) || item.title.contains("رياض", ignoreCase = true)
+    }
+    val isYouTube = remember(item.type, item.url, item.title) {
+        item.type.equals("youtube", ignoreCase = true) ||
+            item.url.contains("youtube.com", ignoreCase = true) ||
+            item.url.contains("youtu.be", ignoreCase = true) ||
+            item.title.contains("يوتيوب", ignoreCase = true)
+    }
+    val isNews = remember(item.id, item.title) {
+        item.title.contains("جديدة", ignoreCase = true) || item.title.contains("أخبار", ignoreCase = true)
+    }
+
+    val subtitle = when {
+        isSport -> "بث رياضي مباشر • HD"
+        isYouTube -> "بث يوتيوب الرقمي"
+        isNews -> "القناة الإخبارية • HD"
+        else -> "البث الفضائي الرسمي • HD"
+    }
+
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.02f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "card_scale"
+    )
+
+    // Card background & borders
+    val cardBackground = if (isSelected) {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFF28090C), // Deep Burgundy/Crimson studio dark
+                Color(0xFF160406)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFF132036), // Frosted Dark Space Slate
+                Color(0xFF0C1524)
+            )
+        )
+    }
+
+    val cardBorder = if (isSelected) {
+        androidx.compose.foundation.BorderStroke(1.5.dp, Brush.horizontalGradient(listOf(Color(0xFFEF4444), Color(0xFFFF7A7A), Color(0xFFEF4444))))
+    } else {
+        androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF243652).copy(alpha = 0.75f))
+    }
+
+    // Emblem branding
+    val emblemBrush = when {
+        isSport -> Brush.linearGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706)))
+        isYouTube -> Brush.linearGradient(listOf(Color(0xFFEF4444), Color(0xFFB91C1C)))
+        isNews -> Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF047857)))
+        else -> Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8)))
+    }
+
+    val emblemIcon = when {
+        isSport -> Icons.Default.SportsSoccer
+        isYouTube -> Icons.Default.PlayArrow
+        else -> Icons.Default.LiveTv
+    }
+
+    Box(
+        modifier = modifier
+            .scale(animatedScale)
+            .shadow(
+                elevation = if (isSelected) 6.dp else 2.dp,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = if (isSelected) Color(0xFFEF4444) else Color.Black,
+                spotColor = if (isSelected) Color(0xFFEF4444) else Color.Black
+            )
+            .clip(RoundedCornerShape(14.dp))
+            .background(cardBackground)
+            .border(cardBorder, RoundedCornerShape(14.dp))
+            .clickable(enabled = !disabled) { onClick() }
+            .semantics { contentDescription = streamSelectionDescription }
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .height(56.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Channel Emblem Box
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(emblemBrush),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = emblemIcon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(19.dp)
+                )
+            }
+
+            // Channel Titles and Status
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.Start
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = streamTitle,
+                        style = LocalTextStyle.current.copy(textDirection = TextDirection.ContentOrRtl),
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+
+                    if (isSelected) {
+                        Surface(
+                            color = Color(0xFFEF4444),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "مباشر",
+                                color = Color.White,
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Black,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    } else {
+                        Surface(
+                            color = Color.White.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "HD",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                if (isSwitching) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(10.dp),
+                            strokeWidth = 1.5.dp,
+                            color = Color(0xFFEF4444)
+                        )
+                        Text(
+                            text = "جارٍ التحويل...",
+                            color = Color(0xFFEF4444),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                } else if (isSelected) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        LiveEqualizerBars(color = Color(0xFF22C55E))
+                        Text(
+                            text = "البث المباشر الآن",
+                            color = Color(0xFF22C55E),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                } else {
+                    Text(
+                        text = subtitle,
+                        color = Color(0xFF94A3B8),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }

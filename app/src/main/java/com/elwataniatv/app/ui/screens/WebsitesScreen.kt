@@ -1,6 +1,12 @@
 package com.elwataniatv.app.ui.screens
 
 import android.widget.Toast
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -154,7 +160,7 @@ fun WebsitesScreen(
                                 overflow = TextOverflow.Ellipsis,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Start
                             )
                             Text(
                                 text = stringResource(R.string.websites_subtitle),
@@ -165,7 +171,7 @@ fun WebsitesScreen(
                                 color = Color.White.copy(alpha = 0.6f),
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Start
                             )
                         }
                     }
@@ -194,14 +200,17 @@ fun WebsitesScreen(
 
             // Screen Content States (Loading, Error, Empty, List)
             when {
-                isLoading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp),
-                        contentAlignment = Alignment.Center
+                isLoading && validWebsites.isEmpty() -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 280.dp),
+                        contentPadding = PaddingValues(start = 14.dp, top = 12.dp, end = 14.dp, bottom = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.testTag("websites_loading_state")
                     ) {
-                        CircularProgressIndicator(color = BrandAccent)
+                        items(6) {
+                            WebsitesSkeletonCard()
+                        }
                     }
                 }
 
@@ -421,14 +430,14 @@ fun WebsiteCardItem(
                     Text(
                         text = site.name,
                         modifier = Modifier.fillMaxWidth(),
-                        style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl),
+                        style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Content),
                         color = Color.White,
                         fontSize = 13.sp,
                         lineHeight = 17.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Start
                     )
 
                     if (domainName.isNotBlank()) {
@@ -488,6 +497,75 @@ fun WebsiteCardItem(
                     fontWeight = FontWeight.Bold
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun WebsitesSkeletonCard() {
+    val infiniteTransition = rememberInfiniteTransition(label = "websites_shimmer")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.15f,
+        targetValue = 0.45f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(BrandPanel)
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = alpha))
+                )
+                Box(
+                    modifier = Modifier
+                        .width(60.dp)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.White.copy(alpha = alpha))
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(16.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(34.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White.copy(alpha = alpha))
+            )
         }
     }
 }

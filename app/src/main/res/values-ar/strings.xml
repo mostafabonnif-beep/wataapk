@@ -18,6 +18,7 @@
     <string name="empty"></string>
     <string name="app_slogan">نبض الجزائر في قلبك</string>
     <string name="tab_live">البث المباشر</string>
+    <string name="tab_news">النشرة</string>
     <string name="tab_archive">الأرشيف</string>
     <string name="tab_favorites">المفضلة</string>
     <string name="tab_more">المزيد</string>
@@ -66,13 +67,29 @@
     </plurals>
     <string name="social_load_error">تعذر تحميل صفحات التواصل الاجتماعي</string>
     <string name="social_check_connection">يرجى التحقق من الاتصال بالإنترنت وإعادة المحاولة</string>
-    <string name="social_empty">لا توجد منصات تواصل مضافة حالياً</string>
-    <string name="social_empty_hint">ستظهر الحسابات الرسمية هنا عند اعتماد روابطها</string>
+    <string name="social_empty">لم يتم إعداد نموذج التواصل بعد</string>
+    <string name="social_empty_hint">يمكن لمدير القناة إعداد وتفعيل نموذج التواصل والحسابات الرسمية من لوحة التحكم</string>
     <string name="social_refresh_list">تحديث القائمة</string>
     <string name="social_open_failed">تعذر فتح رابط المنصة</string>
     <string name="social_invalid_url">رابط المنصة غير صالح</string>
     <string name="social_official_page">صفحة رسمية موثقة</string>
     <string name="social_visit_page">زيارة الصفحة الرسمية</string>
+    <string name="contact_form_title">نموذج التواصل مع إدارة القناة</string>
+    <string name="contact_form_subtitle">أرسل ملاحظاتك، اقتراحاتك أو استفساراتك مباشرة إلى إدارة القناة</string>
+    <string name="contact_form_type_label">نوع الرسالة</string>
+    <string name="contact_form_type_suggestion">اقتراح</string>
+    <string name="contact_form_type_bug">إبلاغ عن مشكلة</string>
+    <string name="contact_form_type_content">محتوى البرامج</string>
+    <string name="contact_form_type_general">استفسار عام</string>
+    <string name="contact_form_email_label">البريد الإلكتروني للرد (اختياري)</string>
+    <string name="contact_form_message_label">نص الرسالة أو الملاحظة</string>
+    <string name="contact_form_message_hint">اكتب تفاصيل رسالتك أو اقتراحك هنا...</string>
+    <string name="contact_form_send_btn">إرسال الرسالة</string>
+    <string name="contact_form_sending">جاري إرسال الرسالة...</string>
+    <string name="contact_form_sent_success">تم إرسال رسالتك بنجاح. شكراً لتواصلك معنا!</string>
+    <string name="contact_form_not_configured">لم يتم إعداد نموذج التواصل بعد</string>
+    <string name="contact_form_not_configured_hint">لم يتم تفعيل نموذج التواصل وقنوات الدعم حتى الآن من لوحة التحكم</string>
+    <string name="contact_direct_channels">قنوات التواصل المباشر</string>
     <string name="tab_settings">الإعدادات</string>
     <string name="more_title">المزيد</string>
     <string name="more_subtitle">كل ما تحتاجه بعد مشاهدة البث</string>
@@ -423,4 +440,12 @@
     <string name="new_content_notification_title">محتوى جديد من الوطنية تي في</string>
     <string name="new_content_notification_summary">%1$s و%2$d عناصر جديدة أخرى</string>
     <string name="onboarding_live_badge">البث متاح الآن · 24/7</string>
+    <string name="category_news">أخبار</string>
+    <string name="category_sports">رياضة</string>
+    <string name="category_culture">ثقافة</string>
+    <string name="category_economy">اقتصاد</string>
+    <string name="category_documentary">وثائقي</string>
+    <string name="category_entertainment">ترفيه</string>
+    <string name="category_programs">برامج</string>
+    <string name="category_other">أخرى</string>
 </resources>

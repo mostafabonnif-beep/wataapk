@@ -4,7 +4,6 @@ import android.app.Application
 import android.os.Build
 import android.util.Log
 import com.google.firebase.FirebaseApp
-import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.elwataniatv.app.util.AppLanguage
 import dagger.hilt.android.HiltAndroidApp
@@ -27,11 +26,11 @@ class ElWataniaApp : Application() {
     }
 
     private fun initObservability() {
+        if (BuildConfig.DEBUG) return
         runCatching {
             if (FirebaseApp.getApps(this).isEmpty()) return
-            FirebaseAnalytics.getInstance(this).setAnalyticsCollectionEnabled(!BuildConfig.DEBUG)
             FirebaseCrashlytics.getInstance().apply {
-                setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
+                setCrashlyticsCollectionEnabled(true)
                 setCustomKey("app_version", BuildConfig.VERSION_NAME)
                 setCustomKey("app_build", BuildConfig.VERSION_CODE)
                 log("Application observability initialized")

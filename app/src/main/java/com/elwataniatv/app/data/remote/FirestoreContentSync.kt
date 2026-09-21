@@ -268,8 +268,8 @@ class FirestoreContentSync(private val authSync: FirebaseAuthSync) {
                         twitterUrl = snap.getString("twitterUrl")?.trim().orEmpty(),
                         whatsappUrl = snap.getString("whatsappUrl")?.trim().orEmpty(),
                         defaultStreamUrl = snap.getString("defaultStreamUrl")?.trim().orEmpty(),
-                        minVersion = snap.getString("minVersion") ?: "",
-                        latestVersion = snap.getString("latestVersion") ?: "",
+                        minVersion = (snap.get("minVersion")?.toString() ?: snap.getString("minVersion")).orEmpty().trim(),
+                        latestVersion = (snap.get("latestVersion")?.toString() ?: snap.getString("latestVersion")).orEmpty().trim(),
                         updateUrl = snap.getString("updateUrl") ?: "",
                         updateMessage = snap.getString("updateMessage") ?: "",
                         primaryColor = snap.getString("primaryColor")?.trim().orEmpty(),
@@ -290,6 +290,9 @@ class FirestoreContentSync(private val authSync: FirebaseAuthSync) {
                     )
                     configuredDefaultStreamUrl = baseConfig.defaultStreamUrl
                     _appConfig.value = baseConfig.withUserPreferences()
+                    if (_social.value.isNullOrEmpty()) {
+                        _social.value = deriveSocialPagesFromConfig(baseConfig)
+                    }
                     if (!hasExplicitStreamsCollection) {
                         _streams.value = configuredFallbackStream()?.let(::listOf).orEmpty()
                     }
@@ -297,6 +300,36 @@ class FirestoreContentSync(private val authSync: FirebaseAuthSync) {
                 }
             listeners += unsub
         }.onFailure { e -> Log.w(TAG, "فشل listenAppConfig: ${e.message}") }
+    }
+
+    private fun deriveSocialPagesFromConfig(config: RemoteAppConfig): List<SocialPage> {
+        val list = mutableListOf<SocialPage>()
+        var order = 0
+        if (config.facebookUrl.isNotBlank()) {
+            list.add(SocialPage(id = "cfg_fb", platform = "Facebook", name = "فيسبوك الوطنية TV", url = config.facebookUrl, order = order++, color = "#1877F2", emoji = "📘"))
+        }
+        if (config.youtubeUrl.isNotBlank()) {
+            list.add(SocialPage(id = "cfg_yt", platform = "YouTube", name = "يوتيوب الوطنية TV", url = config.youtubeUrl, order = order++, color = "#FF0000", emoji = "▶️"))
+        }
+        if (config.telegramUrl.isNotBlank()) {
+            list.add(SocialPage(id = "cfg_tg", platform = "Telegram", name = "تليغرام الوطنية TV", url = config.telegramUrl, order = order++, color = "#229ED9", emoji = "✈️"))
+        }
+        if (config.tiktokUrl.isNotBlank()) {
+            list.add(SocialPage(id = "cfg_tt", platform = "TikTok", name = "تيك توك الوطنية TV", url = config.tiktokUrl, order = order++, color = "#00F2FE", emoji = "🎵"))
+        }
+        if (config.instagramUrl.isNotBlank()) {
+            list.add(SocialPage(id = "cfg_ig", platform = "Instagram", name = "إنستغرام الوطنية TV", url = config.instagramUrl, order = order++, color = "#E4405F", emoji = "📸"))
+        }
+        if (config.twitterUrl.isNotBlank()) {
+            list.add(SocialPage(id = "cfg_tw", platform = "X (Twitter)", name = "حساب X الرسمي", url = config.twitterUrl, order = order++, color = "#1DA1F2", emoji = "𝕏"))
+        }
+        if (config.whatsappUrl.isNotBlank()) {
+            list.add(SocialPage(id = "cfg_wa", platform = "WhatsApp", name = "واتساب الوطنية TV", url = config.whatsappUrl, order = order++, color = "#25D366", emoji = "💬"))
+        }
+        if (config.officialWebsite.isNotBlank()) {
+            list.add(SocialPage(id = "cfg_web", platform = "Website", name = "الموقع الرسمي للقناة", url = config.officialWebsite, order = order++, color = "#0a7ea4", emoji = "🌐"))
+        }
+        return list
     }
 
     /** Reads the owner-only preference document and overlays it on public config. */
@@ -508,12 +541,13 @@ class FirestoreContentSync(private val authSync: FirebaseAuthSync) {
         runCatching {
             val unsub = db.collection("social")
                 .addSnapshotListener { snap, err ->
-                    if (err != null || snap == null) {
-                        _syncError.value = err?.message ?: "Firestore snapshot unavailable"
+                    if (err != null) {
+                        _syncError.value = err.message ?: "Firestore snapshot unavailable"
                         return@addSnapshotListener
                     }
                     _syncError.value = null
-                    _social.value = snap.documents.mapNotNull { d ->
+                    val docs = snap?.documents.orEmpty()
+                    val explicitPages = docs.mapNotNull { d ->
                         runCatching {
                             val rawPlatform = d.getString("platform").orEmpty()
                             val pageUrl = d.getString("url").orEmpty()
@@ -530,9 +564,15 @@ class FirestoreContentSync(private val authSync: FirebaseAuthSync) {
                                 color = d.getString("color") ?: "#1877F2",
                             )
                         }.getOrNull()
-                    }
-                        .filter { it.isActive }
+                    }.filter { it.isActive && it.url.isNotBlank() }
                         .sortedBy { it.order }
+
+                    _social.value = if (explicitPages.isNotEmpty()) {
+                        explicitPages
+                    } else {
+                        _appConfig.value?.let(::deriveSocialPagesFromConfig).orEmpty()
+                    }
+                    markSyncSuccess("social")
                 }
             listeners += unsub
         }.onFailure { e -> Log.w(TAG, "فشل listenSocial: ${e.message}") }

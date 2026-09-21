@@ -68,13 +68,19 @@ fun EpgStrip(
         }
     }
 
+    val cleanEpgList = remember(epgList) {
+        epgList.filter { item ->
+            item.isActive && com.elwataniatv.app.util.ContentSanitizer.isUsable(item.title)
+        }
+    }
+
     // The current program is the latest item whose start time has passed;
     // the next program is the soonest item still in the future.
-    val currentItem = remember(epgList, nowMinutes) {
-        currentEpgItem(epgList, nowMinutes)
+    val currentItem = remember(cleanEpgList, nowMinutes) {
+        currentEpgItem(cleanEpgList, nowMinutes)
     }
-    val nextItem = remember(epgList, nowMinutes) {
-        nextEpgItem(epgList, nowMinutes)
+    val nextItem = remember(cleanEpgList, nowMinutes) {
+        nextEpgItem(cleanEpgList, nowMinutes)
     }
     val minutesUntilNext = remember(nextItem, nowMinutes) {
         minutesUntilEpg(nextItem, nowMinutes)
@@ -109,87 +115,117 @@ fun EpgStrip(
             )
         }
 
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .testTag("epg_next_program_card")
-                .heightIn(min = 78.dp),
-            color = BrandPanel,
-            shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, BrandAccent.copy(alpha = 0.22f))
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
+        if (cleanEpgList.isEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .testTag("epg_empty_card"),
+                color = BrandPanel,
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
             ) {
-                Surface(
-                    color = BrandAccent.copy(alpha = 0.16f),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.size(40.dp)
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.play), tint = BrandAccent, modifier = Modifier.size(20.dp))
-                    }
-                }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = stringResource(if (currentItem != null) R.string.epg_now_playing else R.string.epg_next_program),
-                        style = LocalTextStyle.current.copy(textDirection = TextDirection.ContentOrRtl),
-                        color = BrandAccent,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = BrandAccent.copy(alpha = 0.6f),
+                        modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = highlightedItem?.title ?: stringResource(R.string.epg_no_upcoming),
+                        text = stringResource(R.string.home_no_schedule),
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        } else {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .testTag("epg_next_program_card")
+                    .heightIn(min = 78.dp),
+                color = BrandPanel,
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BrandAccent.copy(alpha = 0.22f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        color = BrandAccent.copy(alpha = 0.16f),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.play), tint = BrandAccent, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = stringResource(if (currentItem != null) R.string.epg_now_playing else R.string.epg_next_program),
+                            style = LocalTextStyle.current.copy(textDirection = TextDirection.ContentOrRtl),
+                            color = BrandAccent,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = highlightedItem?.title ?: stringResource(R.string.epg_no_upcoming),
+                            style = LocalTextStyle.current.copy(textDirection = TextDirection.ContentOrRtl),
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (currentItem != null && currentProgress != null) {
+                            LinearProgressIndicator(
+                                progress = { currentProgress },
+                                modifier = Modifier.fillMaxWidth().height(4.dp),
+                                color = BrandAccent,
+                                trackColor = Color.White.copy(alpha = 0.12f)
+                            )
+                        }
+                    }
+                    Text(
+                        text = if (currentItem != null) {
+                            currentRemaining?.let { pluralStringResource(R.plurals.epg_remaining_minutes, it, it) }
+                                ?: currentItem.startTime
+                        } else {
+                            minutesUntilNext?.let { pluralStringResource(R.plurals.epg_starts_in_minutes, it, it) }
+                                ?: nextItem?.startTime.orEmpty()
+                        },
                         style = LocalTextStyle.current.copy(textDirection = TextDirection.ContentOrRtl),
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 2,
+                        color = Color.White.copy(alpha = 0.68f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        softWrap = false,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if (currentItem != null && currentProgress != null) {
-                        LinearProgressIndicator(
-                            progress = { currentProgress },
-                            modifier = Modifier.fillMaxWidth().height(4.dp),
-                            color = BrandAccent,
-                            trackColor = Color.White.copy(alpha = 0.12f)
-                        )
-                    }
                 }
-                Text(
-                    text = if (currentItem != null) {
-                        currentRemaining?.let { pluralStringResource(R.plurals.epg_remaining_minutes, it, it) }
-                            ?: currentItem.startTime
-                    } else {
-                        minutesUntilNext?.let { pluralStringResource(R.plurals.epg_starts_in_minutes, it, it) }
-                            ?: nextItem?.startTime.orEmpty()
-                    },
-                    style = LocalTextStyle.current.copy(textDirection = TextDirection.ContentOrRtl),
-                    color = Color.White.copy(alpha = 0.68f),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
-        }
 
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val epgCardWidth = when {
-                maxWidth >= 1200.dp -> 260.dp
-                maxWidth >= 600.dp -> 220.dp
-                else -> 180.dp
-            }
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.testTag("epg_strip_row")
-            ) {
-            items(epgList, key = { it.id }) { item ->
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val epgCardWidth = when {
+                    maxWidth >= 1200.dp -> 260.dp
+                    maxWidth >= 600.dp -> 220.dp
+                    else -> 180.dp
+                }
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.testTag("epg_strip_row")
+                ) {
+                items(cleanEpgList, key = { it.id }) { item ->
                 val isReminderSet = reminders.any { it.id == item.id }
                 val isNow = item.id == currentItem?.id
                 val displayTitle = item.title
@@ -298,6 +334,7 @@ fun EpgStrip(
                 }
                 }
             }
+        }
         }
 
         selectedProgram?.let { program ->

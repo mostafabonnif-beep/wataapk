@@ -65,7 +65,7 @@ android {
         applicationId = "com.elwataniatv.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 38
+        versionCode = 30
         versionName = "8.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -149,6 +149,11 @@ android {
         buildConfig = true
     }
 
+    configurations.all {
+        exclude(group = "androidx.privacysandbox.ads", module = "ads-adservices")
+        exclude(group = "androidx.privacysandbox.ads", module = "ads-adservices-java")
+    }
+
     packaging {
         resources {
             excludes += "/META-INDEX/AL2.0"
@@ -192,6 +197,7 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.session)
+    implementation("androidx.media:media:1.7.0")
 
     implementation(libs.coil.compose)
     implementation(libs.kotlinx.serialization.json)
@@ -206,7 +212,8 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.messaging)
-    implementation(libs.firebase.analytics)
+    // Analytics/Measurement excluded to eliminate adservices ServiceUnavailableException on emulator
+    // implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.appcheck)

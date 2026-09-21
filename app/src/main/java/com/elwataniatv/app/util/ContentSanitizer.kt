@@ -18,7 +18,13 @@ object ContentSanitizer {
         "test",
         "testing",
         "تجريبي",
-        "تجربة"
+        "تجربة",
+        "قلمالحمار",
+        "قلم حمار",
+        "حمار",
+        "mock",
+        "fake",
+        "temp"
     )
 
     fun normalized(value: String): String = value.trim().lowercase().replace(separators, "")

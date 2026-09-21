@@ -93,7 +93,7 @@ fun AppearancePreferencesCard(
                         fontSize = 15.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Start
                     )
                 }
                 Switch(
@@ -127,7 +127,7 @@ fun AppearancePreferencesCard(
                         fontSize = 15.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.End,
+                        textAlign = TextAlign.Start,
                         lineHeight = 20.sp
                     )
                 }
@@ -156,7 +156,7 @@ fun AppearancePreferencesCard(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.End
+                textAlign = TextAlign.Start
             )
             NotificationCategorySwitchRow(
                 icon = Icons.Default.Campaign,
@@ -202,7 +202,7 @@ fun AppearancePreferencesCard(
                         fontSize = 15.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Start
                     )
                 }
                 Box {
@@ -277,7 +277,7 @@ private fun NotificationCategorySwitchRow(
                 fontSize = 13.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.End
+                textAlign = TextAlign.Start
             )
         }
         Switch(

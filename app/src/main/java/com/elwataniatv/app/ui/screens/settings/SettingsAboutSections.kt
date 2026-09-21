@@ -171,8 +171,9 @@ fun AboutVersionItem(
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
+        val dynamicVersion = appVersion.ifBlank { com.elwataniatv.app.BuildConfig.VERSION_NAME }
         Text(
-            text = stringResource(R.string.official_version, appVersion.ifBlank { stringResource(R.string.unknown_version) }),
+            text = stringResource(R.string.official_version, dynamicVersion),
             color = Color.White.copy(alpha = 0.6f),
             fontSize = 12.sp
         )

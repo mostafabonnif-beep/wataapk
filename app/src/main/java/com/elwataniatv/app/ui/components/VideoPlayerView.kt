@@ -3,6 +3,7 @@
 package com.elwataniatv.app.ui.components
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -38,6 +39,8 @@ import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -134,6 +137,81 @@ fun VideoPlayerView(
 
     val isYouTube = type == "youtube" || type == "web" || url.contains("youtube.com") || url.contains("youtu.be") || url.contains("facebook.com") || url.contains("dailymotion.com")
 
+    var isStreamReachable by remember(url) { mutableStateOf(isYouTube) }
+    var checkKey by remember(url) { mutableIntStateOf(0) }
+
+    LaunchedEffect(url, isYouTube, checkKey) {
+        if (isYouTube) {
+            isStreamReachable = true
+            isBuffering = false
+            hasError = false
+            return@LaunchedEffect
+        }
+        isBuffering = true
+        hasError = false
+        errorMessage = ""
+
+        val isReachable = withContext(Dispatchers.IO) {
+            try {
+                val uri = java.net.URI(url)
+                var conn = (uri.toURL().openConnection() as java.net.HttpURLConnection).apply {
+                    connectTimeout = 3500
+                    readTimeout = 3500
+                    instanceFollowRedirects = true
+                    requestMethod = "GET"
+                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36")
+                    setRequestProperty("Range", "bytes=0-512")
+                    setRequestProperty("Accept", "*/*")
+                }
+                var code = conn.responseCode
+                if (code in listOf(301, 302, 303, 307, 308)) {
+                    val redirectUrl = conn.getHeaderField("Location")
+                    conn.disconnect()
+                    if (!redirectUrl.isNullOrBlank()) {
+                        conn = (java.net.URI(redirectUrl).toURL().openConnection() as java.net.HttpURLConnection).apply {
+                            connectTimeout = 3500
+                            readTimeout = 3500
+                            instanceFollowRedirects = true
+                            requestMethod = "GET"
+                            setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36")
+                            setRequestProperty("Range", "bytes=0-512")
+                            setRequestProperty("Accept", "*/*")
+                        }
+                        code = conn.responseCode
+                    }
+                }
+                conn.disconnect()
+                code in 200..399 || code == 416
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        if (!isReachable) {
+            isStreamReachable = false
+            android.util.Log.w("VideoPlayerView", "رابط البث غير متاح: $url — الانتقال للبث البديل")
+            val fallback = if (!fallbackAttempted) {
+                nextFallbackStream(latestCurrentStreamId, latestFallbackStreams)
+            } else {
+                null
+            }
+            if (fallback != null) {
+                fallbackAttempted = true
+                hasError = false
+                isBuffering = true
+                errorMessage = context.getString(R.string.player_switching_fallback)
+                latestOnFallbackStream(fallback)
+            } else {
+                hasError = true
+                isBuffering = false
+                errorMessage = context.getString(R.string.player_stream_not_found)
+            }
+        } else {
+            isStreamReachable = true
+            hasError = false
+        }
+    }
+
     LaunchedEffect(url, isYouTube) {
         if (!isYouTube) return@LaunchedEffect
         webViewLoading = true
@@ -146,8 +224,8 @@ fun VideoPlayerView(
     }
 
     // Single ExoPlayer instance tied to context & url (persists during fullscreen toggle)
-    val exoPlayer = remember(playerContext, url, type) {
-        if (isYouTube) null else {
+    val exoPlayer = remember(playerContext, url, type, isStreamReachable) {
+        if (isYouTube || !isStreamReachable) null else {
             val audioAttributes = AudioAttributes.Builder()
                 .setUsage(C.USAGE_MEDIA)
                 .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
@@ -165,8 +243,19 @@ fun VideoPlayerView(
                     )
                 )
 
+            val loadErrorHandlingPolicy = object : androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy() {
+                override fun getRetryDelayMsFor(loadErrorInfo: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo): Long {
+                    val cause = loadErrorInfo.exception
+                    if (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) {
+                        return androidx.media3.common.C.TIME_UNSET
+                    }
+                    return super.getRetryDelayMsFor(loadErrorInfo)
+                }
+            }
+
             val mediaSourceFactory = DefaultMediaSourceFactory(playerContext)
                 .setDataSourceFactory(httpDataSourceFactory)
+                .setLoadErrorHandlingPolicy(loadErrorHandlingPolicy)
 
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
@@ -193,6 +282,8 @@ fun VideoPlayerView(
                         seekTo(initialPositionMs)
                     }
                     playWhenReady = true
+                }.also {
+                    com.elwataniatv.app.service.BackgroundPlayerManager.activePlayer = it
                 }
         }
     }
@@ -203,12 +294,23 @@ fun VideoPlayerView(
         val lifecycle = lifecycleOwner.lifecycle
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> {
-                    // Keep playing when the activity enters Picture-in-Picture;
-                    // pause only on a real background stop.
-                    if (!com.elwataniatv.app.util.PipController.isInPip.value) {
-                        exoPlayer?.pause()
+                Lifecycle.Event.ON_STOP -> {
+                    if (exoPlayer != null && exoPlayer.isPlaying && !com.elwataniatv.app.util.PipController.isInPip.value) {
+                        com.elwataniatv.app.service.BackgroundPlayerService.start(context)
+                    } else {
+                        if (!com.elwataniatv.app.util.PipController.isInPip.value) {
+                            exoPlayer?.pause()
+                        }
                     }
+                }
+                Lifecycle.Event.ON_START -> {
+                    com.elwataniatv.app.service.BackgroundPlayerService.stop(context)
+                    if (exoPlayer != null && isPlaying && !hasError && !exoPlayer.isPlaying) {
+                        exoPlayer.play()
+                    }
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    // Handled in ON_STOP for background playback
                 }
                 Lifecycle.Event.ON_RESUME -> {
                     if (exoPlayer != null && isPlaying && !hasError) {
@@ -288,6 +390,7 @@ fun VideoPlayerView(
 
                 override fun onIsPlayingChanged(playing: Boolean) {
                     isPlaying = playing
+                    com.elwataniatv.app.service.BackgroundPlayerManager.updatePlayingState(playing)
                     // Report live playback to the PIP controller so
                     // MainActivity can enter PIP when the user leaves.
                     com.elwataniatv.app.util.PipController.setLivePlaying(playing && !hasError)
@@ -309,6 +412,8 @@ fun VideoPlayerView(
                 lifecycle.removeObserver(observer)
                 retryJob?.cancel()
                 exoPlayer.removeListener(listener)
+                com.elwataniatv.app.service.BackgroundPlayerManager.activePlayer = null
+                com.elwataniatv.app.service.BackgroundPlayerService.stop(context)
                 // Only clear the PIP flag when this player is the live one.
                 if (com.elwataniatv.app.util.PipController.livePlaying) {
                     com.elwataniatv.app.util.PipController.setLivePlaying(false)
@@ -375,6 +480,15 @@ fun VideoPlayerView(
         } else {
             webViewError = true
             webViewLoading = false
+            val target = com.elwataniatv.app.util.safeHttpUri(url)
+            if (target != null) {
+                runCatching {
+                    val intent = Intent(Intent.ACTION_VIEW, target).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                }
+            }
         }
     }
 
@@ -404,121 +518,163 @@ fun VideoPlayerView(
             contentAlignment = Alignment.Center
         ) {
             if (isYouTube) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { ctx ->
-                        WebView(ctx).apply {
-                            layoutParams = ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT
-                            )
-                            settings.apply {
-                                javaScriptEnabled = true
-                                domStorageEnabled = true
-                                cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-                                allowFileAccess = false
-                                allowContentAccess = false
-                                mediaPlaybackRequiresUserGesture = false
-                                mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                                userAgentString = "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-                            }
-                            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                            addJavascriptInterface(
-                                YouTubeErrorBridge { code ->
-                                    coroutineScope.launch {
-                                        // 2/5/100/101/150/153 all mean the
-                                        // embed cannot play — fall through to
-                                        // the next configured source.
-                                        if (code == 101 || code == 150 || code == 153 || code == 100 || code == 5) {
-                                            handlePlaybackFailure()
+                if (!webViewError) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { ctx ->
+                            WebView(ctx).apply {
+                                layoutParams = ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                )
+                                settings.apply {
+                                    javaScriptEnabled = true
+                                    domStorageEnabled = true
+                                    cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                                    allowFileAccess = false
+                                    allowContentAccess = false
+                                    mediaPlaybackRequiresUserGesture = false
+                                    mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                                    userAgentString = "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+                                }
+                                CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                                addJavascriptInterface(
+                                    YouTubeErrorBridge { code ->
+                                        coroutineScope.launch {
+                                            // 2/5/100/101/150/152/153 all mean the
+                                            // embed cannot play — fall through to
+                                            // the error state / fallback.
+                                            if (code == 2 || code == 5 || code == 100 || code == 101 || code == 150 || code == 152 || code == 153) {
+                                                handlePlaybackFailure()
+                                            }
+                                        }
+                                    },
+                                    "AndroidYtBridge"
+                                )
+                                webChromeClient = WebChromeClient()
+                                webViewClient = object : WebViewClient() {
+                                    override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                                        webViewLoading = true
+                                        webViewError = false
+                                    }
+
+                                    override fun onPageFinished(view: WebView?, url: String?) {
+                                        webViewLoading = false
+                                    }
+
+                                    override fun onReceivedError(
+                                        view: WebView?,
+                                        request: android.webkit.WebResourceRequest?,
+                                        error: android.webkit.WebResourceError?
+                                    ) {
+                                        if (request?.isForMainFrame != false) {
+                                            coroutineScope.launch {
+                                                handlePlaybackFailure()
+                                            }
                                         }
                                     }
-                                },
-                                "AndroidYtBridge"
-                            )
-                            webChromeClient = WebChromeClient()
-                            webViewClient = object : WebViewClient() {
-                                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                                    webViewLoading = true
-                                    webViewError = false
-                                }
 
-                                override fun onPageFinished(view: WebView?, url: String?) {
-                                    webViewLoading = false
-                                }
-
-                                override fun onReceivedError(
-                                    view: WebView?,
-                                    request: android.webkit.WebResourceRequest?,
-                                    error: android.webkit.WebResourceError?
-                                ) {
-                                    if (request?.isForMainFrame != false) {
-                                        webViewLoading = false
-                                        webViewError = true
+                                    override fun onReceivedHttpError(
+                                        view: WebView?,
+                                        request: android.webkit.WebResourceRequest?,
+                                        errorResponse: android.webkit.WebResourceResponse?
+                                    ) {
+                                        if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 200) >= 400) {
+                                            coroutineScope.launch {
+                                                handlePlaybackFailure()
+                                            }
+                                        }
                                     }
-                                }
 
-                                override fun onReceivedHttpError(
-                                    view: WebView?,
-                                    request: android.webkit.WebResourceRequest?,
-                                    errorResponse: android.webkit.WebResourceResponse?
-                                ) {
-                                    if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 200) >= 400) {
-                                        webViewLoading = false
-                                        webViewError = true
+                                    override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                                        val target = request?.url ?: return true
+                                        val host = target.host?.lowercase()
+                                        val isAllowedYouTubeHost = host == "youtube.com" || host?.endsWith(".youtube.com") == true || host == "youtube-nocookie.com" || host?.endsWith(".youtube-nocookie.com") == true
+                                        return target.scheme != "https" || !isAllowedYouTubeHost
                                     }
-                                }
-
-                                override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
-                                    val target = request?.url ?: return true
-                                    val host = target.host?.lowercase()
-                                    val isAllowedYouTubeHost = host == "youtube.com" || host?.endsWith(".youtube.com") == true || host == "youtube-nocookie.com" || host?.endsWith(".youtube-nocookie.com") == true
-                                    return target.scheme != "https" || !isAllowedYouTubeHost
                                 }
                             }
-                        }
-                    },
-                    update = { webView ->
-                        val targetUrl = youtubeEmbedUrl(url)
-                        if (targetUrl.isNullOrBlank()) {
-                            webViewLoading = false
-                            webViewError = true
-                        } else if (webLoadedFor != targetUrl) {
-                            webLoadedFor = targetUrl
-                            webViewLoading = true
-                            webViewError = false
-                            val embedWithApi = targetUrl + (if (targetUrl.contains('?')) "&" else "?") +
-                                "enablejsapi=1&playsinline=1&rel=0&origin=https%3A%2F%2Fwww.youtube.com"
-                            val html = """<!DOCTYPE html><html><head>
-                                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-                                <style>html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}
-                                iframe{width:100%;height:100%;border:0}</style></head>
-                                <body>
-                                <iframe id="yt" src=""" + embedWithApi + """" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-                                <script src="https://www.youtube.com/iframe_api"></script>
-                                <script>
-                                function onYouTubeIframeAPIReady() {
-                                  new YT.Player('yt', {
-                                    events: {
-                                      'onError': function(e) { AndroidYtBridge.onYtError(e.data); }
+                        },
+                        update = { webView ->
+                            val targetUrl = youtubeEmbedUrl(url)
+                            if (targetUrl.isNullOrBlank()) {
+                                handlePlaybackFailure()
+                            } else if (webLoadedFor != targetUrl) {
+                                webLoadedFor = targetUrl
+                                webViewLoading = true
+                                webViewError = false
+                                val embedWithApi = targetUrl + (if (targetUrl.contains('?')) "&" else "?") +
+                                    "enablejsapi=1&playsinline=1&rel=0&origin=https%3A%2F%2Fwww.youtube.com"
+                                val html = """<!DOCTYPE html><html><head>
+                                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+                                    <style>html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}
+                                    iframe{width:100%;height:100%;border:0}</style></head>
+                                    <body>
+                                    <iframe id="yt" src=""" + embedWithApi + """" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+                                    <script src="https://www.youtube.com/iframe_api"></script>
+                                    <script>
+                                    function onYouTubeIframeAPIReady() {
+                                      new YT.Player('yt', {
+                                        events: {
+                                          'onError': function(e) { AndroidYtBridge.onYtError(e.data); }
+                                        }
+                                      });
                                     }
-                                  });
-                                }
-                                </script>
-                                </body></html>"""
-                            webView.loadDataWithBaseURL(
-                                "https://www.youtube.com/",
-                                html,
-                                "text/html",
-                                "utf-8",
-                                null
-                            )
+                                    </script>
+                                    </body></html>"""
+                                webView.loadDataWithBaseURL(
+                                    "https://www.youtube.com/",
+                                    html,
+                                    "text/html",
+                                    "utf-8",
+                                    null
+                                )
+                            }
                         }
-                    }
-                )
+                    )
+                }
 
                 if (webViewLoading && !webViewError) {
                     CircularProgressIndicator(color = BrandAccent, modifier = Modifier.size(42.dp))
+                }
+
+                // Floating Open in YouTube button so user can always open restricted videos
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp),
+                    contentAlignment = Alignment.TopEnd
+                ) {
+                    Surface(
+                        onClick = {
+                            val target = com.elwataniatv.app.util.safeHttpUri(url)
+                            if (target != null) {
+                                runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, target)) }
+                            }
+                        },
+                        color = Color.Black.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandAccent.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = null,
+                                tint = BrandAccent,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.player_open_external),
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
 
                 if (webViewError) {
@@ -559,24 +715,26 @@ fun VideoPlayerView(
                         }
                     }
                 }
-            } else if (exoPlayer != null) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { _ ->
-                        PlayerView(playerContext).apply {
-                            player = exoPlayer
-                            useController = !isLocked
-                            resizeMode = aspectRatio.mode
+            } else {
+                if (exoPlayer != null) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { _ ->
+                            PlayerView(playerContext).apply {
+                                player = exoPlayer
+                                useController = !isLocked
+                                resizeMode = aspectRatio.mode
+                            }
+                        },
+                        update = { playerView ->
+                            if (playerView.player != exoPlayer) {
+                                playerView.player = exoPlayer
+                            }
+                            playerView.resizeMode = aspectRatio.mode
+                            playerView.useController = !isLocked && !inPip
                         }
-                    },
-                    update = { playerView ->
-                        if (playerView.player != exoPlayer) {
-                            playerView.player = exoPlayer
-                        }
-                        playerView.resizeMode = aspectRatio.mode
-                        playerView.useController = !isLocked && !inPip
-                    }
-                )
+                    )
+                }
 
                 // Buffering Spinner
                 if (isBuffering && !hasError && !inPip) {
@@ -619,11 +777,16 @@ fun VideoPlayerView(
                                 hasError = false
                                 isBuffering = true
                                 autoRetryCount = 0
-                                retryJob = coroutineScope.launch {
-                                    exoPlayer.setMediaItem(mediaItemForUrl(url, type))
-                                    exoPlayer.seekToDefaultPosition()
-                                    exoPlayer.prepare()
-                                    exoPlayer.play()
+                                fallbackAttempted = false
+                                if (exoPlayer != null) {
+                                    retryJob = coroutineScope.launch {
+                                        exoPlayer.setMediaItem(mediaItemForUrl(url, type))
+                                        exoPlayer.seekToDefaultPosition()
+                                        exoPlayer.prepare()
+                                        exoPlayer.play()
+                                    }
+                                } else {
+                                    checkKey++
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)

@@ -92,32 +92,35 @@ fun ArchiveProgramCard(
     )
     val programDescription = stringResource(R.string.open_program, program.title, program.category)
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer {
                 scaleX = focusScale
                 scaleY = focusScale
             }
-            .clip(RoundedCornerShape(18.dp))
-            .background(BrandPanel.copy(alpha = if (isFocused) 0.9f else 0.72f))
+            .clip(RoundedCornerShape(16.dp))
+            .background(BrandPanel.copy(alpha = if (isFocused) 0.9f else 0.78f))
             .border(
                 width = if (isFocused) 2.dp else 1.dp,
-                color = if (isFocused) BrandAccent else Color.White.copy(alpha = 0.07f),
-                shape = RoundedCornerShape(18.dp)
+                color = if (isFocused) BrandAccent else Color.White.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(16.dp)
             )
             .onFocusChanged { state: FocusState -> isFocused = state.isFocused }
             .focusable()
             .clickable { onCardClick() }
             .semantics { contentDescription = programDescription }
             .testTag("archive_card_${program.id}")
-            .padding(10.dp)
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        // Thumbnail Box
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(14.dp))
+                .width(130.dp)
+                .height(86.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .background(BrandPrimary.copy(alpha = 0.2f))
                 .clickable(enabled = hasVideo, onClick = onPlay)
                 .testTag("archive_play_${program.id}"),
@@ -134,7 +137,7 @@ fun ArchiveProgramCard(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = BrandAccent, modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = BrandAccent, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         }
                     },
                     onError = { isImageError = true }
@@ -142,7 +145,7 @@ fun ArchiveProgramCard(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.28f))
+                        .background(Color.Black.copy(alpha = 0.3f))
                 )
             } else {
                 Box(
@@ -155,41 +158,29 @@ fun ArchiveProgramCard(
             if (hasVideo) {
                 Box(
                     modifier = Modifier
-                        .size(54.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(BrandPrimary.copy(alpha = 0.92f)),
+                        .background(BrandPrimary.copy(alpha = 0.9f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayCircle,
                         contentDescription = stringResource(R.string.play_video),
                         tint = Color.White,
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             } else {
                 Surface(
                     color = Color.Black.copy(alpha = 0.72f),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(6.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ErrorOutline,
-                            contentDescription = null,
-                            tint = Color(0xFFFFB4AB),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.archive_video_unavailable),
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = Color(0xFFFFB4AB),
+                        modifier = Modifier.size(16.dp).padding(2.dp)
+                    )
                 }
             }
 
@@ -198,10 +189,10 @@ fun ArchiveProgramCard(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                        .height(4.dp)
+                        .padding(horizontal = 6.dp, vertical = 5.dp)
+                        .height(3.dp)
                         .clip(RoundedCornerShape(50))
-                        .background(Color.White.copy(alpha = 0.25f))
+                        .background(Color.White.copy(alpha = 0.3f))
                 ) {
                     Box(
                         modifier = Modifier
@@ -213,97 +204,85 @@ fun ArchiveProgramCard(
             }
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        // Details Column
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                if (program.category.isNotBlank()) {
-                    Surface(
-                        color = BrandPrimary.copy(alpha = 0.25f),
-                        shape = RoundedCornerShape(7.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = getCategoryIcon(program.category),
-                                contentDescription = program.category,
-                                tint = BrandAccent,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text(
-                                text = program.category,
-                                style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl),
-                                color = BrandAccent,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-                Text(
-                    text = program.title,
-                    style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl),
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 20.sp
-                )
-                if (program.description.isNotBlank()) {
-                    Text(
-                        text = program.description,
-                        style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl),
-                        color = Color.White.copy(alpha = 0.68f),
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 16.sp
-                    )
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+            if (program.category.isNotBlank()) {
+                Surface(
+                    color = BrandPrimary.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(6.dp)
                 ) {
-                    if (program.date.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.published_date), tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(12.dp))
-                            Text(program.date, style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl), color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                    if (program.duration.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Default.AccessTime, contentDescription = stringResource(R.string.duration), tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(12.dp))
-                            Text(program.duration, style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrRtl), color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = getCategoryIcon(program.category),
+                            contentDescription = getLocalizedCategoryName(program.category),
+                            tint = BrandAccent,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Text(
+                            text = getLocalizedCategoryName(program.category),
+                            style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Content),
+                            color = BrandAccent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                IconButton(onClick = onShare, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = Color.White.copy(alpha = 0.72f), modifier = Modifier.size(18.dp))
+            Text(
+                text = program.title,
+                style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Content),
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 18.sp
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (program.date.isNotBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(11.dp))
+                        Text(com.elwataniatv.app.util.DateFmt.smartDate(program.date), style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Content), color = Color.White.copy(alpha = 0.65f), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
-                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(48.dp)) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
-                        contentDescription = stringResource(R.string.favorites),
-                        tint = if (isFavorite) BrandAccent else Color.White.copy(alpha = 0.75f),
-                        modifier = Modifier.size(20.dp)
-                    )
+                if (program.duration.isNotBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(11.dp))
+                        Text(program.duration, style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Content), color = Color.White.copy(alpha = 0.65f), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
+            }
+        }
+
+        // Action Buttons Column (Share & Favorite)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            IconButton(onClick = onShare, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
+            }
+            IconButton(onClick = onToggleFavorite, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
+                    contentDescription = stringResource(R.string.favorites),
+                    tint = if (isFavorite) BrandAccent else Color.White.copy(alpha = 0.75f),
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }

@@ -116,12 +116,12 @@ fun AppTopBar(
 
                 androidx.compose.foundation.layout.Column(
                     modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.End
+                    horizontalAlignment = Alignment.Start
                 ) {
                     Text(
                         text = appName.ifBlank { stringResource(R.string.app_name) },
                         modifier = Modifier.fillMaxWidth(),
-                        style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl),
+                        style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.Content),
                         color = Color.White,
                         fontWeight = FontWeight.Black,
                         fontSize = 17.sp,
@@ -129,19 +129,19 @@ fun AppTopBar(
                         letterSpacing = 0.1.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Start
                     )
                     Text(
                         text = appSlogan.ifBlank { stringResource(R.string.app_slogan) },
                         modifier = Modifier.fillMaxWidth(),
-                        style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.ContentOrRtl),
+                        style = androidx.compose.ui.text.TextStyle(textDirection = TextDirection.Content),
                         color = Color.White.copy(alpha = 0.55f),
                         fontSize = 11.sp,
                         lineHeight = 14.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Start
                     )
                 }
             }

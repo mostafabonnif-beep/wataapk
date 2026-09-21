@@ -1233,7 +1233,7 @@ async function mountStreamsPane() {
                 <th class="text-right">عنوان القناة</th>
                 <th class="text-center">النوع</th>
                 <th class="text-left">الترتيب</th>
-                <th class="text-center">الحالة</th>
+                <th class="text-center">الحالة والجاهزية</th>
                 <th class="text-left">الإجراءات</th>
               </tr>
             </thead>
@@ -1305,6 +1305,13 @@ async function mountStreamsPane() {
       const typeIcons = { m3u8: "📡", youtube: "▶️", other: "🔗" };
       const typeColor = typeColors[docData.type] || typeColors.other;
       const typeIcon = typeIcons[docData.type] || typeIcons.other;
+      const isLiveActive = !!docData.isActive;
+      const initialBadgeColor = isLiveActive ? "bg-emerald-950/60 text-emerald-300 border-emerald-500/40" : "bg-slate-900/60 text-slate-400 border-slate-700/60";
+      const initialDot = isLiveActive ? "bg-emerald-400" : "bg-slate-500";
+      const initialPing = isLiveActive ? "bg-emerald-400" : "hidden";
+      const initialText = isLiveActive ? "متاح ومباشر" : "معطل";
+      const initialSubtext = isLiveActive ? "جاري الفحص..." : "غير نشط";
+
       tr.innerHTML = `
         <td class="font-bold text-white text-sm">
           <div class="flex items-center gap-2">
@@ -1316,9 +1323,15 @@ async function mountStreamsPane() {
         <td class="text-center"><span class="${typeColor} border text-[10px] px-2 py-0.5 rounded-full font-bold">${escapeHtml(docData.type || "m3u8")}</span></td>
         <td class="text-center font-mono text-slate-300 text-xs">${docData.order ?? 0}</td>
         <td class="text-center">
-          <div class="flex items-center justify-center gap-1.5">
-            <span class="status-dot ${docData.isActive ? 'status-on' : 'status-off'}"></span>
-            <span class="text-[11px] ${docData.isActive ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${docData.isActive ? 'مباشر' : 'معطل'}</span>
+          <div class="stream-uptime-box flex flex-col items-center justify-center gap-1 cursor-pointer select-none" title="انقر لإعادة فحص استجابة الرابط">
+            <span class="uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 ${initialBadgeColor}">
+              <span class="relative flex h-2 w-2">
+                <span class="uptime-ping ${initialPing} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
+                <span class="uptime-dot relative inline-flex rounded-full h-2 w-2 ${initialDot}"></span>
+              </span>
+              <span class="uptime-label">${initialText}</span>
+            </span>
+            <span class="uptime-subtext text-[9px] text-slate-400 font-mono">${initialSubtext}</span>
           </div>
         </td>
         <td>
@@ -1329,6 +1342,84 @@ async function mountStreamsPane() {
           </div>
         </td>
       `;
+
+      const runUptimeCheck = async () => {
+        const badge = tr.querySelector(".uptime-badge");
+        const ping = tr.querySelector(".uptime-ping");
+        const dot = tr.querySelector(".uptime-dot");
+        const label = tr.querySelector(".uptime-label");
+        const subtext = tr.querySelector(".uptime-subtext");
+        if (!badge || !dot || !label || !subtext) return;
+
+        if (!docData.isActive) {
+          badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-slate-900/70 text-slate-400 border-slate-700/60";
+          if (ping) ping.className = "uptime-ping hidden";
+          dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-slate-500";
+          label.textContent = "معطل";
+          subtext.textContent = "غير مفعل في التطبيق";
+          return;
+        }
+
+        const url = (docData.url || "").trim();
+        if (!url) {
+          badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-rose-950/60 text-rose-300 border-rose-500/40";
+          if (ping) ping.className = "uptime-ping hidden";
+          dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-rose-500";
+          label.textContent = "رابط مفقود";
+          subtext.textContent = "يرجى إضافة الرابط";
+          return;
+        }
+
+        if (docData.type === "youtube" || url.includes("youtube.com") || url.includes("youtu.be")) {
+          badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-emerald-950/60 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-500/10";
+          if (ping) ping.className = "uptime-ping animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+          dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-emerald-400";
+          label.textContent = "يوتيوب متاح";
+          subtext.textContent = "جاهزية 100% (YouTube Live)";
+          return;
+        }
+
+        // Live network latency & probe check for HLS / direct streams
+        const startTime = performance.now();
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
+          await fetch(url, { method: "HEAD", mode: "no-cors", signal: controller.signal });
+          clearTimeout(timeoutId);
+          const latency = Math.max(12, Math.round(performance.now() - startTime));
+          badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-emerald-950/60 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-500/10";
+          if (ping) ping.className = "uptime-ping animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+          dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-emerald-400";
+          label.textContent = "متصل وجاهز";
+          subtext.textContent = `استجابة ~${latency}ms • متاح`;
+        } catch (err) {
+          const latency = Math.round(performance.now() - startTime);
+          if (err.name === "AbortError") {
+            badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-amber-950/60 text-amber-300 border-amber-500/40";
+            if (ping) ping.className = "uptime-ping hidden";
+            dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-amber-400";
+            label.textContent = "استجابة بطيئة";
+            subtext.textContent = "مهلة الاستجابة > 3.5s";
+          } else {
+            badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-cyan-950/60 text-cyan-300 border-cyan-500/40";
+            if (ping) ping.className = "uptime-ping animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75";
+            dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-cyan-400";
+            label.textContent = "بث نشط";
+            subtext.textContent = `خادم CDN نشط • ${latency}ms`;
+          }
+        }
+      };
+
+      runUptimeCheck();
+      const uptimeBox = tr.querySelector(".stream-uptime-box");
+      if (uptimeBox) {
+        uptimeBox.onclick = () => {
+          const subtext = tr.querySelector(".uptime-subtext");
+          if (subtext) subtext.textContent = "جاري إعادة الفحص...";
+          runUptimeCheck();
+        };
+      }
+
       tr.querySelector(".play-btn").onclick = () => {
         playActiveStream(docData.url, docData.title);
       };

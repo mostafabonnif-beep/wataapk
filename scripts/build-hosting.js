@@ -40,8 +40,9 @@ function readAndroidFirebaseConfig() {
     const appId = client?.client_info?.mobilesdk_app_id;
     const projectId = config.project_info?.project_id;
     const messagingSenderId = config.project_info?.project_number;
-    if (!apiKey || !appId || !projectId || !messagingSenderId) return {};
-    return { apiKey, appId, projectId, messagingSenderId };
+    const webAppId = appId && appId.includes(":web:") ? appId : undefined;
+    if (!apiKey || !projectId || !messagingSenderId) return {};
+    return { apiKey, appId: webAppId, projectId, messagingSenderId };
   } catch {
     return {};
   }

@@ -7,7 +7,10 @@ import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.OndemandVideo
 import androidx.compose.material.icons.filled.Sports
 import androidx.compose.material.icons.filled.Theaters
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import com.elwataniatv.app.R
 import com.elwataniatv.app.data.model.ArchiveProgram
 import com.elwataniatv.app.data.local.WatchHistoryItem
 import com.elwataniatv.app.util.extractYouTubeVideoId
@@ -75,12 +78,30 @@ fun deriveThumbnailUrl(thumbnailUrl: String, youtubeUrl: String): String {
 fun getCategoryIcon(category: String): ImageVector {
     val lower = category.trim().lowercase()
     return when {
-        lower.contains("أخبار") || lower.contains("اخبار") || lower.contains("نشرة") || lower.contains("نشرات") || lower.contains("news") -> Icons.Default.Newspaper
-        lower.contains("رياضة") || lower.contains("رياضي") || lower.contains("sports") -> Icons.Default.Sports
-        lower.contains("وثائقي") || lower.contains("وثائقية") || lower.contains("documentary") -> Icons.Default.Movie
-        lower.contains("ثقافة") || lower.contains("ثقافي") || lower.contains("culture") -> Icons.AutoMirrored.Filled.MenuBook
-        lower.contains("ترفيه") || lower.contains("ترفيهي") || lower.contains("entertainment") -> Icons.Default.Theaters
+        lower.contains("أخبار") || lower.contains("اخبار") || lower.contains("نشرة") || lower.contains("نشرات") || lower.contains("news") || lower.contains("actualité") -> Icons.Default.Newspaper
+        lower.contains("رياضة") || lower.contains("رياضي") || lower.contains("sport") -> Icons.Default.Sports
+        lower.contains("وثائقي") || lower.contains("وثائقية") || lower.contains("document") -> Icons.Default.Movie
+        lower.contains("ثقافة") || lower.contains("ثقافي") || lower.contains("cultur") -> Icons.AutoMirrored.Filled.MenuBook
+        lower.contains("ترفيه") || lower.contains("ترفيهي") || lower.contains("entertain") || lower.contains("divert") -> Icons.Default.Theaters
         else -> Icons.Default.OndemandVideo
+    }
+}
+
+/** Localized display label for standard categories. */
+@Composable
+fun getLocalizedCategoryName(category: String): String {
+    if (category == ALL_CATEGORY) return stringResource(R.string.all_categories)
+    val lower = category.trim().lowercase()
+    return when {
+        lower == "أخبار" || lower == "اخبار" || lower == "news" || lower == "actualités" -> stringResource(R.string.category_news)
+        lower == "رياضة" || lower == "sports" || lower == "sport" -> stringResource(R.string.category_sports)
+        lower == "ثقافة" || lower == "culture" -> stringResource(R.string.category_culture)
+        lower == "اقتصاد" || lower == "economy" || lower == "économie" -> stringResource(R.string.category_economy)
+        lower == "وثائقي" || lower == "وثائقية" || lower == "documentary" || lower == "documentaires" -> stringResource(R.string.category_documentary)
+        lower == "ترفيه" || lower == "entertainment" || lower == "divertissement" -> stringResource(R.string.category_entertainment)
+        lower == "برامج" || lower == "programs" || lower == "programmes" -> stringResource(R.string.category_programs)
+        lower == "أخرى" || lower == "other" || lower == "autre" -> stringResource(R.string.category_other)
+        else -> category
     }
 }
 

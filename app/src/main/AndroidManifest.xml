@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <!-- Android TV form-factor declarations -->
     <uses-feature
@@ -34,6 +36,7 @@
         android:banner="@drawable/tv_banner"
         android:roundIcon="@mipmap/ic_launcher_watania"
         android:supportsRtl="true"
+        android:hardwareAccelerated="true"
         android:localeConfig="@xml/locales_config"
         android:theme="@style/Theme.ElwataniaTV">
 
@@ -56,6 +59,24 @@
         </activity>
 
         <!-- إشعارات FCM — معالج الاستقبال في الخلفية -->
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="false" />
+
+        <!-- إيقاف جمع الإعلانات والقياس التلقائي لتجنب أخطاء adservices على المحاكي -->
+        <meta-data
+            android:name="firebase_analytics_collection_deactivated"
+            android:value="true" />
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_ssaid_collection_enabled"
+            android:value="false" />
+
         <service
             android:name=".notifications.FcmMessageService"
             android:exported="false">
@@ -63,6 +84,11 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <service
+            android:name=".service.BackgroundPlayerService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
         <!-- تذكيرات البرامج: يطلق الإشعار عند حلول موعد البرنامج -->
         <receiver

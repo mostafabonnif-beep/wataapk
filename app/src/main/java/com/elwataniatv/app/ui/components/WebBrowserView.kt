@@ -222,6 +222,8 @@ fun WebBrowserView(
                 factory = { ctx ->
                     try {
                         WebView(ctx).apply {
+                            // Use software layer type if hardware rendering crashes in container
+                            setLayerType(View.LAYER_TYPE_HARDWARE, null)
                             layoutParams = ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
