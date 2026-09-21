@@ -84,9 +84,9 @@ private fun mediaItemForUrl(rawUrl: String, type: String): MediaItem {
             .setMimeType(MimeTypes.APPLICATION_M3U8)
             .setLiveConfiguration(
                 MediaItem.LiveConfiguration.Builder()
-                    .setTargetOffsetMs(4_000)
-                    .setMinPlaybackSpeed(0.98f)
-                    .setMaxPlaybackSpeed(1.02f)
+                    .setTargetOffsetMs(10_000)
+                    .setMinPlaybackSpeed(0.97f)
+                    .setMaxPlaybackSpeed(1.03f)
                     .build()
             )
     }
@@ -247,12 +247,13 @@ fun VideoPlayerView(
             val loadErrorHandlingPolicy = object : androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy() {
                 override fun getRetryDelayMsFor(loadErrorInfo: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo): Long {
                     val cause = loadErrorInfo.exception
-                    if (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) {
-                        // For manifest/playlist 404s, fail quickly so fallback/error kicks in.
-                        // For media chunk 404s, allow the standard retry/exclusion logic.
-                        if (loadErrorInfo.mediaLoadData.dataType == androidx.media3.common.C.DATA_TYPE_MANIFEST) {
-                            return androidx.media3.common.C.TIME_UNSET
-                        }
+                    val is404 = (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) ||
+                            (cause.cause is HttpDataSource.InvalidResponseCodeException && (cause.cause as HttpDataSource.InvalidResponseCodeException).responseCode == 404)
+                    if (is404) {
+                        // For 404 errors on either manifest or media chunks, retrying the exact same missing URL
+                        // on the CDN stalls playback. Returning C.TIME_UNSET immediately hands control to
+                        // onPlayerError to re-sync to the live edge or switch to a fallback stream.
+                        return androidx.media3.common.C.TIME_UNSET
                     }
                     return super.getRetryDelayMsFor(loadErrorInfo)
                 }
@@ -264,10 +265,10 @@ fun VideoPlayerView(
 
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    2000, // minBufferMs
-                    30000, // maxBufferMs
-                    1500, // bufferForPlaybackMs
-                    2000  // bufferForPlaybackAfterRebufferMs
+                    6_000,  // minBufferMs (increased to prevent under-buffering behind live window)
+                    30_000, // maxBufferMs
+                    2_000,  // bufferForPlaybackMs
+                    3_000   // bufferForPlaybackAfterRebufferMs
                 )
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
@@ -342,7 +343,8 @@ fun VideoPlayerView(
 
                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                     val cause = error.cause
-                    val is404 = cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404
+                    val is404 = (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) ||
+                            (cause?.cause is HttpDataSource.InvalidResponseCodeException && (cause.cause as HttpDataSource.InvalidResponseCodeException).responseCode == 404)
                     val isNoNetwork = cause is java.net.UnknownHostException || 
                             cause is java.net.SocketTimeoutException || 
                             cause is java.net.ConnectException || 
@@ -352,17 +354,20 @@ fun VideoPlayerView(
                     val isBehindLive = error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW ||
                             cause is BehindLiveWindowException ||
                             cause?.cause is BehindLiveWindowException ||
-                            error.message?.contains("BehindLiveWindowException", ignoreCase = true) == true
+                            error.message?.contains("BehindLiveWindowException", ignoreCase = true) == true ||
+                            cause?.message?.contains("BehindLiveWindowException", ignoreCase = true) == true
 
                     if (isBehindLive) {
                         retryJob?.cancel()
-                        retryJob = null
                         hasError = false
                         isBuffering = true
-                        exoPlayer.seekToDefaultPosition()
-                        exoPlayer.prepare()
-                        exoPlayer.play()
-                    } else if ((!is404 || autoRetryCount == 0) && autoRetryCount < maxAutoRetries) {
+                        retryJob = coroutineScope.launch {
+                            delay(150)
+                            exoPlayer.seekToDefaultPosition()
+                            exoPlayer.prepare()
+                            exoPlayer.play()
+                        }
+                    } else if (autoRetryCount < maxAutoRetries) {
                         retryJob?.cancel()
                         autoRetryCount++
                         val retryNumber = autoRetryCount
@@ -370,18 +375,14 @@ fun VideoPlayerView(
                         hasError = false
                         errorMessage = context.getString(R.string.player_reconnecting, retryNumber, maxAutoRetries)
                         retryJob = coroutineScope.launch {
-                            delay(1_500L * (1L shl (retryNumber - 1)))
+                            delay(700L * retryNumber)
                             exoPlayer.setMediaItem(mediaItemForUrl(url, type))
                             exoPlayer.seekToDefaultPosition()
                             exoPlayer.prepare()
                             exoPlayer.play()
                         }
                     } else {
-                        val fallback = if (!fallbackAttempted) {
-                            nextFallbackStream(latestCurrentStreamId, latestFallbackStreams)
-                        } else {
-                            null
-                        }
+                        val fallback = nextFallbackStream(latestCurrentStreamId, latestFallbackStreams)
                         if (fallback != null) {
                             // Switch only to an active Firestore-configured entry;
                             // never manufacture or rewrite a stream URL.
@@ -626,39 +627,43 @@ fun VideoPlayerView(
                             }
                         },
                         update = { webView ->
-                            val targetUrl = youtubeEmbedUrl(url)
-                            if (targetUrl.isNullOrBlank()) {
-                                handlePlaybackFailure()
-                            } else if (webLoadedFor != targetUrl) {
-                                webLoadedFor = targetUrl
-                                webViewLoading = true
-                                webViewError = false
-                                val embedWithApi = targetUrl + (if (targetUrl.contains('?')) "&" else "?") +
-                                    "enablejsapi=1&playsinline=1&rel=0&origin=https%3A%2F%2Fwww.youtube.com"
-                                val html = """<!DOCTYPE html><html><head>
-                                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-                                    <style>html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}
-                                    iframe{width:100%;height:100%;border:0}</style></head>
-                                    <body>
-                                    <iframe id="yt" src=""" + embedWithApi + """" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-                                    <script src="https://www.youtube.com/iframe_api"></script>
-                                    <script>
-                                    function onYouTubeIframeAPIReady() {
-                                      new YT.Player('yt', {
-                                        events: {
-                                          'onError': function(e) { AndroidYtBridge.onYtError(e.data); }
+                            try {
+                                val targetUrl = youtubeEmbedUrl(url)
+                                if (targetUrl.isNullOrBlank()) {
+                                    handlePlaybackFailure()
+                                } else if (webLoadedFor != targetUrl) {
+                                    webLoadedFor = targetUrl
+                                    webViewLoading = true
+                                    webViewError = false
+                                    val embedWithApi = targetUrl + (if (targetUrl.contains('?')) "&" else "?") +
+                                        "enablejsapi=1&playsinline=1&rel=0&origin=https%3A%2F%2Fwww.youtube.com"
+                                    val html = """<!DOCTYPE html><html><head>
+                                        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+                                        <style>html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}
+                                        iframe{width:100%;height:100%;border:0}</style></head>
+                                        <body>
+                                        <iframe id="yt" src=""" + embedWithApi + """" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+                                        <script src="https://www.youtube.com/iframe_api"></script>
+                                        <script>
+                                        function onYouTubeIframeAPIReady() {
+                                          new YT.Player('yt', {
+                                            events: {
+                                              'onError': function(e) { AndroidYtBridge.onYtError(e.data); }
+                                            }
+                                          });
                                         }
-                                      });
-                                    }
-                                    </script>
-                                    </body></html>"""
-                                webView.loadDataWithBaseURL(
-                                    "https://www.youtube.com/",
-                                    html,
-                                    "text/html",
-                                    "utf-8",
-                                    null
-                                )
+                                        </script>
+                                        </body></html>"""
+                                    webView.loadDataWithBaseURL(
+                                        "https://www.youtube.com/",
+                                        html,
+                                        "text/html",
+                                        "utf-8",
+                                        null
+                                    )
+                                }
+                            } catch (_: Throwable) {
+                                handlePlaybackFailure()
                             }
                         }
                     )

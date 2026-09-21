@@ -1299,8 +1299,45 @@ async function mountStreamsPane() {
       tbody.innerHTML = `<tr><td colspan="5" class="empty">لا توجد قنوات بث مضافة في النظام حالياً.</td></tr>`;
       return;
     }
+
+    const streamStatusMap = new Map();
+
+    const updateHighestAlertRow = () => {
+      let targetRowId = null;
+      let highestSeverity = -1;
+      let highestLatency = -1;
+
+      for (const [id, info] of streamStatusMap.entries()) {
+        if (!info.isActive) continue;
+        if (info.isTransientError) {
+          if (highestSeverity < 2 || (highestSeverity === 2 && info.latency > highestLatency)) {
+            highestSeverity = 2;
+            highestLatency = info.latency;
+            targetRowId = id;
+          }
+        } else if (info.latency > 0) {
+          if (highestSeverity < 1 || (highestSeverity === 1 && info.latency > highestLatency)) {
+            highestSeverity = 1;
+            highestLatency = info.latency;
+            targetRowId = id;
+          }
+        }
+      }
+
+      tbody.querySelectorAll("tr[data-stream-id]").forEach(trEl => {
+        const dot = trEl.querySelector(".uptime-dot, .status-dot");
+        if (!dot) return;
+        if (trEl.dataset.streamId === targetRowId) {
+          dot.classList.add("animate-pulse");
+        } else {
+          dot.classList.remove("animate-pulse");
+        }
+      });
+    };
+
     docs.forEach(docData => {
       const tr = el("tr");
+      tr.dataset.streamId = docData.id;
       const typeColors = { m3u8: "bg-cyan-950/40 text-cyan-300 border-cyan-500/20", youtube: "bg-red-950/40 text-red-300 border-red-500/20", other: "bg-slate-950/40 text-slate-300 border-slate-500/20" };
       const typeIcons = { m3u8: "📡", youtube: "▶️", other: "🔗" };
       const typeColor = typeColors[docData.type] || typeColors.other;
@@ -1327,7 +1364,7 @@ async function mountStreamsPane() {
             <span class="uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 ${initialBadgeColor}">
               <span class="relative flex h-2 w-2">
                 <span class="uptime-ping ${initialPing} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
-                <span class="uptime-dot relative inline-flex rounded-full h-2 w-2 ${initialDot}"></span>
+                <span class="uptime-dot status-dot relative inline-flex rounded-full h-2 w-2 ${initialDot}"></span>
               </span>
               <span class="uptime-label">${initialText}</span>
             </span>
@@ -1354,9 +1391,11 @@ async function mountStreamsPane() {
         if (!docData.isActive) {
           badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-slate-900/70 text-slate-400 border-slate-700/60";
           if (ping) ping.className = "uptime-ping hidden";
-          dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-slate-500";
+          dot.className = "uptime-dot status-dot relative inline-flex rounded-full h-2 w-2 bg-slate-500";
           label.textContent = "معطل";
           subtext.textContent = "غير مفعل في التطبيق";
+          streamStatusMap.set(docData.id, { isActive: false, latency: 0, isTransientError: false });
+          updateHighestAlertRow();
           return;
         }
 
@@ -1364,18 +1403,22 @@ async function mountStreamsPane() {
         if (!url) {
           badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-rose-950/60 text-rose-300 border-rose-500/40";
           if (ping) ping.className = "uptime-ping hidden";
-          dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-rose-500";
+          dot.className = "uptime-dot status-dot relative inline-flex rounded-full h-2 w-2 bg-rose-500";
           label.textContent = "رابط مفقود";
           subtext.textContent = "يرجى إضافة الرابط";
+          streamStatusMap.set(docData.id, { isActive: true, latency: 9999, isTransientError: true });
+          updateHighestAlertRow();
           return;
         }
 
         if (docData.type === "youtube" || url.includes("youtube.com") || url.includes("youtu.be")) {
           badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-emerald-950/60 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-500/10";
           if (ping) ping.className = "uptime-ping animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
-          dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-emerald-400";
+          dot.className = "uptime-dot status-dot relative inline-flex rounded-full h-2 w-2 bg-emerald-400";
           label.textContent = "يوتيوب متاح";
           subtext.textContent = "جاهزية 100% (YouTube Live)";
+          streamStatusMap.set(docData.id, { isActive: true, latency: 50, isTransientError: false });
+          updateHighestAlertRow();
           return;
         }
 
@@ -1389,23 +1432,29 @@ async function mountStreamsPane() {
           const latency = Math.max(12, Math.round(performance.now() - startTime));
           badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-emerald-950/60 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-500/10";
           if (ping) ping.className = "uptime-ping animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
-          dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-emerald-400";
+          dot.className = "uptime-dot status-dot relative inline-flex rounded-full h-2 w-2 bg-emerald-400";
           label.textContent = "متصل وجاهز";
           subtext.textContent = `استجابة ~${latency}ms • متاح`;
+          streamStatusMap.set(docData.id, { isActive: true, latency, isTransientError: false });
+          updateHighestAlertRow();
         } catch (err) {
           const latency = Math.round(performance.now() - startTime);
           if (err.name === "AbortError") {
             badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-amber-950/60 text-amber-300 border-amber-500/40";
             if (ping) ping.className = "uptime-ping hidden";
-            dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-amber-400";
+            dot.className = "uptime-dot status-dot relative inline-flex rounded-full h-2 w-2 bg-amber-400";
             label.textContent = "استجابة بطيئة";
             subtext.textContent = "مهلة الاستجابة > 3.5s";
+            streamStatusMap.set(docData.id, { isActive: true, latency, isTransientError: true });
+            updateHighestAlertRow();
           } else {
             badge.className = "uptime-badge border text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition-all duration-300 bg-cyan-950/60 text-cyan-300 border-cyan-500/40";
             if (ping) ping.className = "uptime-ping animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75";
-            dot.className = "uptime-dot relative inline-flex rounded-full h-2 w-2 bg-cyan-400";
+            dot.className = "uptime-dot status-dot relative inline-flex rounded-full h-2 w-2 bg-cyan-400";
             label.textContent = "بث نشط";
             subtext.textContent = `خادم CDN نشط • ${latency}ms`;
+            streamStatusMap.set(docData.id, { isActive: true, latency, isTransientError: false });
+            updateHighestAlertRow();
           }
         }
       };
