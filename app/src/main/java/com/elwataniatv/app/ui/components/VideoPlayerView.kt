@@ -57,6 +57,7 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.BehindLiveWindowException
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -247,7 +248,11 @@ fun VideoPlayerView(
                 override fun getRetryDelayMsFor(loadErrorInfo: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo): Long {
                     val cause = loadErrorInfo.exception
                     if (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) {
-                        return androidx.media3.common.C.TIME_UNSET
+                        // For manifest/playlist 404s, fail quickly so fallback/error kicks in.
+                        // For media chunk 404s, allow the standard retry/exclusion logic.
+                        if (loadErrorInfo.mediaLoadData.dataType == androidx.media3.common.C.DATA_TYPE_MANIFEST) {
+                            return androidx.media3.common.C.TIME_UNSET
+                        }
                     }
                     return super.getRetryDelayMsFor(loadErrorInfo)
                 }
@@ -344,11 +349,20 @@ fun VideoPlayerView(
                             error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
                             error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
 
-                    if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+                    val isBehindLive = error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW ||
+                            cause is BehindLiveWindowException ||
+                            cause?.cause is BehindLiveWindowException ||
+                            error.message?.contains("BehindLiveWindowException", ignoreCase = true) == true
+
+                    if (isBehindLive) {
+                        retryJob?.cancel()
+                        retryJob = null
+                        hasError = false
+                        isBuffering = true
                         exoPlayer.seekToDefaultPosition()
                         exoPlayer.prepare()
                         exoPlayer.play()
-                    } else if (!is404 && autoRetryCount < maxAutoRetries) {
+                    } else if ((!is404 || autoRetryCount == 0) && autoRetryCount < maxAutoRetries) {
                         retryJob?.cancel()
                         autoRetryCount++
                         val retryNumber = autoRetryCount
@@ -584,6 +598,22 @@ fun VideoPlayerView(
                                                 handlePlaybackFailure()
                                             }
                                         }
+                                    }
+
+                                    override fun onRenderProcessGone(
+                                        view: WebView?,
+                                        detail: android.webkit.RenderProcessGoneDetail?
+                                    ): Boolean {
+                                        try {
+                                            view?.let {
+                                                (it.parent as? ViewGroup)?.removeView(it)
+                                                it.destroy()
+                                            }
+                                        } catch (_: Throwable) {}
+                                        coroutineScope.launch {
+                                            handlePlaybackFailure()
+                                        }
+                                        return true
                                     }
 
                                     override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {

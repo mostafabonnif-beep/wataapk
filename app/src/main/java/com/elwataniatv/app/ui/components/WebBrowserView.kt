@@ -222,8 +222,6 @@ fun WebBrowserView(
                 factory = { ctx ->
                     try {
                         WebView(ctx).apply {
-                            // Use software layer type if hardware rendering crashes in container
-                            setLayerType(View.LAYER_TYPE_HARDWARE, null)
                             layoutParams = ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -275,6 +273,21 @@ fun WebBrowserView(
                                         isLoading = false
                                         hasError = true
                                     }
+                                }
+
+                                override fun onRenderProcessGone(
+                                    view: WebView?,
+                                    detail: android.webkit.RenderProcessGoneDetail?
+                                ): Boolean {
+                                    try {
+                                        view?.let {
+                                            (it.parent as? ViewGroup)?.removeView(it)
+                                            it.destroy()
+                                        }
+                                    } catch (_: Throwable) {}
+                                    isLoading = false
+                                    hasError = true
+                                    return true
                                 }
 
                                 override fun shouldOverrideUrlLoading(
