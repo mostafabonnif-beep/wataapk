@@ -332,6 +332,7 @@ fun SocialScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val socialOpenFailedMessage = stringResource(R.string.social_open_failed)
 
     // Safely filter social pages with valid URLs
     val validSocialPages = remember(socialPages) {
@@ -577,7 +578,7 @@ fun SocialScreen(
                                         runCatching {
                                             context.startActivity(Intent(Intent.ACTION_VIEW, safeUri))
                                         }.onFailure {
-                                            Toast.makeText(context, context.getString(R.string.social_open_failed), Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, socialOpenFailedMessage, Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 },
@@ -642,7 +643,7 @@ fun SocialScreen(
                                     runCatching {
                                         context.startActivity(Intent(Intent.ACTION_VIEW, safeUri))
                                     }.onFailure {
-                                        Toast.makeText(context, openFailedMessage, Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, socialOpenFailedMessage, Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             }
@@ -838,6 +839,10 @@ fun ContactFormCard(
     var submittedSuccess by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    val contactMessageHint = stringResource(R.string.contact_form_message_hint)
+    val contactSentSuccess = stringResource(R.string.contact_form_sent_success)
+    val socialLoadError = stringResource(R.string.social_load_error)
+
     val types = listOf(
         "general" to stringResource(R.string.contact_form_type_general),
         "suggestion" to stringResource(R.string.contact_form_type_suggestion),
@@ -960,7 +965,7 @@ fun ContactFormCard(
             onClick = {
                 val msg = messageText.trim()
                 if (msg.isBlank()) {
-                    Toast.makeText(context, context.getString(R.string.contact_form_message_hint), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, contactMessageHint, Toast.LENGTH_SHORT).show()
                     return@Button
                 }
                 isSubmitting = true
@@ -969,9 +974,9 @@ fun ContactFormCard(
                     if (success) {
                         submittedSuccess = true
                         messageText = ""
-                        Toast.makeText(context, context.getString(R.string.contact_form_sent_success), Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, contactSentSuccess, Toast.LENGTH_LONG).show()
                     } else {
-                        Toast.makeText(context, err ?: context.getString(R.string.social_load_error), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, err ?: socialLoadError, Toast.LENGTH_SHORT).show()
                     }
                 }
             },
