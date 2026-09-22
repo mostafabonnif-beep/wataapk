@@ -117,6 +117,11 @@ fs.writeFileSync(
 // signed APK in the private repository, but publish only a Base64 text
 // payload; the landing page reconstructs it locally after the user clicks.
 const downloadsOutput = path.join(outputDir, "assets", "downloads");
+const releaseApk = path.join(rootDir, "app", "build", "outputs", "apk", "release", "app-release.apk");
+if (fs.existsSync(releaseApk)) {
+  fs.mkdirSync(downloadsOutput, { recursive: true });
+  fs.copyFileSync(releaseApk, path.join(downloadsOutput, "ElwataniaTV-v8.6.0-release.apk"));
+}
 if (fs.existsSync(downloadsOutput)) {
   for (const apkName of fs.readdirSync(downloadsOutput).filter((name) => name.toLowerCase().endsWith(".apk"))) {
     const apkOutput = path.join(downloadsOutput, apkName);
