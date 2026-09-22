@@ -305,7 +305,7 @@ html[dir="rtl"] body{direction:rtl;text-rendering:optimizeLegibility;-webkit-fon
   <footer class="bg-brand-panel/80 border-t border-brand-border/30 px-6 py-2 text-[10px] text-slate-500 flex items-center justify-between">
     <span class="flex items-center gap-1.5"><img src="../assets/images/watania-channel-logo-unified.png" alt="" class="w-4 h-4 rounded inline" /> الوطنية TV © 2026</span>
     <span class="hidden md:inline">⌨️ Ctrl+1-9 للتنقل بين اللوحات · 📥 أزرار التصدير لكل قسم</span>
-    <span id="footerStatus">🟢 النظام جاهز · v10.0 الاحترافية</span>
+    <span id="footerStatus">🟢 لوحة التحكم v10.1 — إصدار التطبيق 8.6.0</span>
   </footer>
 </section>
 
@@ -402,7 +402,7 @@ import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, onSnapshot, getDoc, getDocs, query, where, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp,
+  getFirestore, collection, doc, onSnapshot, getDoc, getDocs, query, where, orderBy, limit, setDoc as firestoreSetDoc, addDoc as firestoreAddDoc, updateDoc as firestoreUpdateDoc, deleteDoc as firestoreDeleteDoc, serverTimestamp, Timestamp,
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -428,6 +428,37 @@ function toDatetimeLocalValue(value) {
 }
 
 const state = { app: null, auth: null, db: null, user: null, role: null, authReady: false, listenersReady: false, mounted: false, unsubscribes: [], bootstrapDone: false, lastSyncAt: null };
+
+const mutationMeta = () => ({ updatedAt: serverTimestamp(), updatedBy: "admin" });
+
+async function setDoc(ref, data, options) {
+  return firestoreSetDoc(ref, { ...data, ...mutationMeta() }, options);
+}
+
+async function addDoc(ref, data) {
+  return firestoreAddDoc(ref, { ...data, ...mutationMeta() });
+}
+
+async function updateDoc(ref, data) {
+  return firestoreUpdateDoc(ref, { ...data, ...mutationMeta() });
+}
+
+async function deleteDoc(ref) {
+  const result = await firestoreDeleteDoc(ref);
+  try {
+    if (state.db) {
+      await firestoreAddDoc(collection(state.db, "activity_log"), {
+        type: "manual",
+        action: "حذف مستند",
+        details: ref?.path || "",
+        admin: state.user?.email || "admin",
+        timestamp: serverTimestamp(),
+        ...mutationMeta()
+      });
+    }
+  } catch (_) {}
+  return result;
+}
 
 function markDashboardSynced() {
   state.lastSyncAt = new Date();
@@ -3331,6 +3362,35 @@ async function mountHelpPane() {
   `;
 }
 
+
+function initRecentActivityPreview() {
+  const target = $("#recentActivityList");
+  if (!target || !state.db) return;
+  const recentQuery = query(collection(state.db, "activity_log"), orderBy("timestamp", "desc"), limit(5));
+  const unsub = onSnapshot(recentQuery, (snapshot) => {
+    if (snapshot.empty) {
+      target.innerHTML = '<div class="text-xs text-slate-500">لا توجد تعديلات مسجلة بعد.</div>';
+      return;
+    }
+    target.innerHTML = snapshot.docs.map((item) => {
+      const data = item.data();
+      const rawTime = data.updatedAt || data.timestamp;
+      const millis = rawTime?.toMillis?.() ?? (rawTime?.seconds ? rawTime.seconds * 1000 : 0);
+      const when = millis ? new Date(millis).toLocaleString("ar-DZ") : "الآن";
+      const action = data.action || "تعديل مستند";
+      const details = data.details || data.type || "";
+      return `<div class="flex items-start justify-between gap-3 rounded-lg border border-brand-border/50 bg-slate-900/50 px-3 py-2"><div class="min-w-0"><div class="text-xs font-bold text-white truncate">${escapeHtml(action)}</div><div class="text-[10px] text-slate-500 truncate">${escapeHtml(details)}</div></div><time class="shrink-0 text-[10px] text-cyan-300" dir="ltr">${escapeHtml(when)}</time></div>`;
+    }).join("");
+  }, (err) => {
+    if (isPermissionDenied(err)) {
+      target.innerHTML = '<div class="text-xs text-amber-300">سجل التعديلات غير متاح وفق قواعد Firestore الحالية.</div>';
+      return;
+    }
+    target.innerHTML = `<div class="text-xs text-red-300">${escapeHtml(firestoreErrorMessage(err))}</div>`;
+  });
+  trackUnsub(unsub);
+}
+
 async function mountConfigPane() {
   const pane = $("#pane-config");
   pane.innerHTML = `
@@ -3341,6 +3401,14 @@ async function mountConfigPane() {
       </div>
       
       <div id="configFormAlert"></div>
+
+      <section class="rounded-xl border border-cyan-500/20 bg-cyan-950/10 p-4 space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-sm font-black text-cyan-300">🕘 آخر 5 تعديلات</h3>
+          <span class="text-[10px] text-slate-500">تُحدّث تلقائياً</span>
+        </div>
+        <div id="recentActivityList" class="space-y-2"><div class="text-xs text-slate-500">جاري تحميل سجل التعديلات...</div></div>
+      </section>
       
       <form id="configForm" class="space-y-6">
         <!-- 🏷️ Brand & Identity Section -->
@@ -3640,6 +3708,7 @@ async function mountConfigPane() {
 
   // Attach live preview listeners after the pane HTML is injected (scripts inside innerHTML never run).
   try { initConfigLivePreviews(); } catch (e) { console.warn("[Pane] config preview init failed:", e); }
+  try { initRecentActivityPreview(); } catch (e) { console.warn("[Pane] recent activity init failed:", e); }
 
   const unsub = onSnapshot(doc(state.db, "config", "app"), (snapshot) => {
     if (snapshot.exists()) {
