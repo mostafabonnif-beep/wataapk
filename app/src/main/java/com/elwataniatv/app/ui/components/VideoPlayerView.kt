@@ -367,6 +367,22 @@ fun VideoPlayerView(
                             exoPlayer.prepare()
                             exoPlayer.play()
                         }
+                    } else if (is404) {
+                        // HTTP 404 means the stream endpoint or playlist no longer exists on the server.
+                        // Do not waste time retrying a dead URL; immediately jump to the next active fallback stream.
+                        retryJob?.cancel()
+                        val fallback = nextFallbackStream(latestCurrentStreamId, latestFallbackStreams)
+                        if (fallback != null) {
+                            fallbackAttempted = true
+                            hasError = false
+                            isBuffering = true
+                            errorMessage = context.getString(R.string.player_switching_fallback)
+                            latestOnFallbackStream(fallback)
+                        } else {
+                            hasError = true
+                            isBuffering = false
+                            errorMessage = context.getString(R.string.player_stream_not_found)
+                        }
                     } else if (autoRetryCount < maxAutoRetries) {
                         retryJob?.cancel()
                         autoRetryCount++
@@ -538,6 +554,9 @@ fun VideoPlayerView(
                         modifier = Modifier.fillMaxSize(),
                         factory = { ctx ->
                             WebView(ctx).apply {
+                                // Disable hardware acceleration on WebView inside emulator/software raster environments
+                                // to prevent GPU/render process termination (exit code -1).
+                                setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
                                 layoutParams = ViewGroup.LayoutParams(
                                     ViewGroup.LayoutParams.MATCH_PARENT,
                                     ViewGroup.LayoutParams.MATCH_PARENT
@@ -605,6 +624,8 @@ fun VideoPlayerView(
                                         view: WebView?,
                                         detail: android.webkit.RenderProcessGoneDetail?
                                     ): Boolean {
+                                        webViewLoading = false
+                                        webViewError = true
                                         try {
                                             view?.let {
                                                 (it.parent as? ViewGroup)?.removeView(it)

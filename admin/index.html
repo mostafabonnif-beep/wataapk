@@ -278,6 +278,7 @@ html[dir="rtl"] body{direction:rtl;text-rendering:optimizeLegibility;-webkit-fon
     <button data-tab="help" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📘 المساعدة</button>
     <button data-tab="activity" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📋 النشاط</button>
     <button data-tab="stats" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">📊 الإحصائيات</button>
+    <button data-tab="config" class="px-3 md:px-4 py-2.5 md:py-3 text-[10px] md:text-sm font-black text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 rounded-lg flex-shrink-0">⚙️ الإعدادات</button>
   </nav>
 
   <!-- Main Workspace -->
@@ -304,7 +305,7 @@ html[dir="rtl"] body{direction:rtl;text-rendering:optimizeLegibility;-webkit-fon
   <footer class="bg-brand-panel/80 border-t border-brand-border/30 px-6 py-2 text-[10px] text-slate-500 flex items-center justify-between">
     <span class="flex items-center gap-1.5"><img src="../assets/images/watania-channel-logo-unified.png" alt="" class="w-4 h-4 rounded inline" /> الوطنية TV © 2026</span>
     <span class="hidden md:inline">⌨️ Ctrl+1-9 للتنقل بين اللوحات · 📥 أزرار التصدير لكل قسم</span>
-    <span id="footerStatus">🟢 النظام جاهز · v9.2</span>
+    <span id="footerStatus">🟢 النظام جاهز · v10.0 الاحترافية</span>
   </footer>
 </section>
 
@@ -468,8 +469,8 @@ async function hasAdminClaim(user) {
 }
 
 function allowedTabsForRole(role) {
-  if (role === "admin") return ["streams", "breaking", "news", "archive", "epg", "websites", "social", "push", "ads", "live", "help", "activity", "stats"];
-  if (role === "editor") return ["streams", "news", "archive", "epg", "websites", "social", "help"];
+  if (role === "admin") return ["streams", "breaking", "news", "archive", "epg", "websites", "social", "push", "ads", "live", "help", "activity", "stats", "config"];
+  if (role === "editor") return ["streams", "news", "archive", "epg", "websites", "social", "help", "config"];
   if (role === "moderator") return ["help"];
   return [];
 }
@@ -861,6 +862,39 @@ function getModalLinkRules(fields, values) {
     }));
 }
 
+function getSocialPlatformIconHtml(platform, color = "#0a7ea4") {
+  const p = String(platform || "").toLowerCase();
+  let svg = "";
+  let bg = color;
+  if (p.includes("youtube")) {
+    bg = "#FF0000";
+    svg = `<svg class="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`;
+  } else if (p.includes("facebook")) {
+    bg = "#1877F2";
+    svg = `<svg class="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>`;
+  } else if (p.includes("instagram")) {
+    bg = "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)";
+    svg = `<svg class="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`;
+  } else if (p.includes("telegram")) {
+    bg = "#229ED9";
+    svg = `<svg class="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>`;
+  } else if (p.includes("tiktok")) {
+    bg = "#000000";
+    svg = `<svg class="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 2.89 3.48 2.76 1.26-.03 2.37-.77 2.87-1.91.24-.49.33-1.04.33-1.58V.02z"/></svg>`;
+  } else if (p.includes("whatsapp")) {
+    bg = "#25D366";
+    svg = `<svg class="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>`;
+  } else if (p.includes("twitter") || p.includes("x")) {
+    bg = "#000000";
+    svg = `<svg class="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
+  } else {
+    svg = `<svg class="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>`;
+  }
+  const isGradient = String(bg).startsWith("linear-gradient");
+  const style = isGradient ? `background: ${bg};` : `background-color: ${bg};`;
+  return `<div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-md border border-white/20 mx-auto" style="${style}">${svg}</div>`;
+}
+
 function openModal(title, fields, onSave) {
   modalTitle.textContent = title;
   modalForm.innerHTML = "";
@@ -871,33 +905,74 @@ function openModal(title, fields, onSave) {
     lbl.textContent = f.label + (f.required ? " *" : "");
     wrap.append(lbl);
     
-    let input;
+    const isImageField = f.type === "image" || /image|logo|thumbnail|banner/i.test(f.key);
+
     if (f.type === "select") {
-      input = el("select", { id: `fld_${f.key}`, name: f.key, required: !!f.required });
+      const input = el("select", { id: `fld_${f.key}`, name: f.key, required: !!f.required });
       f.options.forEach(o => {
         const opt = el("option", { value: o });
         opt.textContent = o;
         input.append(opt);
       });
       if (f.value != null) input.value = f.value;
+      wrap.append(input);
     } else if (f.type === "textarea") {
-      input = el("textarea", { id: `fld_${f.key}`, name: f.key, rows: f.rows ?? 4, required: !!f.required });
+      const input = el("textarea", { id: `fld_${f.key}`, name: f.key, rows: f.rows ?? 4, required: !!f.required });
       input.value = f.value ?? "";
+      wrap.append(input);
     } else if (f.type === "checkbox") {
       const toggleWrap = el("label", { className: "flex items-center gap-2 cursor-pointer mt-2" });
-      input = el("input", { id: `fld_${f.key}`, name: f.key, type: "checkbox", className: "w-4 h-4 rounded text-brand-primary" });
+      const input = el("input", { id: `fld_${f.key}`, name: f.key, type: "checkbox", className: "w-4 h-4 rounded text-brand-primary" });
       input.checked = !!f.value;
       toggleWrap.append(input, el("span", { className: "text-xs font-bold text-slate-300" }, " مفعَّل ونشط"));
       wrap.innerHTML = "";
       wrap.append(lbl, toggleWrap);
       modalForm.append(wrap);
       return;
+    } else if (isImageField) {
+      // Image input with live preview and upload option
+      const container = el("div", { className: "space-y-2" });
+      const row = el("div", { className: "flex items-center gap-3" });
+      
+      const previewBox = el("div", { className: "w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 flex-shrink-0 overflow-hidden flex items-center justify-center shadow" });
+      const initialVal = f.value || "";
+      previewBox.innerHTML = initialVal ? `<img src="${escapeAttr(initialVal)}" class="w-full h-full object-cover" alt="معاينة" onerror="this.replaceWith(document.createTextNode('📷'))">` : `<span class="text-xl">📷</span>`;
+      
+      const textInput = el("input", { id: `fld_${f.key}`, name: f.key, type: "text", placeholder: "https://... رابط الصورة أو رفع ملف", className: "flex-1 text-xs font-mono" });
+      textInput.value = initialVal;
+      
+      const fileInput = el("input", { type: "file", accept: "image/*", className: "hidden" });
+      const uploadBtn = el("button", { type: "button", className: "btn-ghost !text-sky-400 border border-sky-500/20 text-xs px-2.5 py-2 flex items-center gap-1 flex-shrink-0" }, "📁 رفع");
+      uploadBtn.onclick = () => fileInput.click();
+      
+      fileInput.onchange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          const dataUrl = re.target?.result;
+          if (dataUrl) {
+            textInput.value = dataUrl;
+            previewBox.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover" alt="معاينة">`;
+          }
+        };
+        reader.readAsDataURL(file);
+      };
+      
+      textInput.oninput = () => {
+        const v = textInput.value.trim();
+        previewBox.innerHTML = v ? `<img src="${escapeAttr(v)}" class="w-full h-full object-cover" alt="معاينة" onerror="this.replaceWith(document.createTextNode('📷'))">` : `<span class="text-xl">📷</span>`;
+      };
+      
+      row.append(previewBox, textInput, uploadBtn, fileInput);
+      container.append(row);
+      wrap.append(container);
     } else {
-      input = el("input", { id: `fld_${f.key}`, name: f.key, type: f.type ?? "text", required: !!f.required });
+      const input = el("input", { id: `fld_${f.key}`, name: f.key, type: f.type ?? "text", required: !!f.required });
       if (f.value != null) input.value = f.value;
+      wrap.append(input);
     }
     
-    wrap.append(input);
     modalForm.append(wrap);
   });
   
@@ -1218,7 +1293,7 @@ async function mountStreamsPane() {
         <div class="flex items-center justify-between border-b border-brand-border/60 pb-4">
           <div>
             <h2 class="text-lg font-black text-white">🔴 قنوات البث المباشر (HLS / YouTube)</h2>
-            <p class="text-xs text-slate-400">تحكم بالقنوات وروابط البث التلفزيوني واليوتيوب في التطبيق</p>
+            <p class="text-xs text-slate-400">تحكم بالقنوات وروابط البث والشعارات وترتيبها في التطبيق</p>
           </div>
           <button class="btn-primary flex items-center gap-2 text-xs py-2" id="addStreamBtn">➕ إضافة قناة بث</button>
           <div class="flex gap-2">
@@ -1230,15 +1305,16 @@ async function mountStreamsPane() {
           <table class="w-full">
             <thead>
               <tr>
+                <th class="text-center w-14">الشعار</th>
                 <th class="text-right">عنوان القناة</th>
                 <th class="text-center">النوع</th>
-                <th class="text-left">الترتيب</th>
+                <th class="text-center">الترتيب</th>
                 <th class="text-center">الحالة والجاهزية</th>
                 <th class="text-left">الإجراءات</th>
               </tr>
             </thead>
             <tbody id="streamsTableBody">
-              <tr><td colspan="5" class="empty">تحميل قنوات البث المباشر...</td></tr>
+              <tr><td colspan="6" class="empty">تحميل قنوات البث المباشر...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1282,10 +1358,11 @@ async function mountStreamsPane() {
   $("#addStreamBtn").onclick = () => {
     openModal("إضافة قناة بث (HLS / YouTube)", [
       { key: "title", label: "اسم القناة (مثال: البث الرسمي أو قناة يوتيوب)", type: "text", required: true },
+      { key: "imageUrl", label: "شعار / صورة مصغرة للقناة (رابط أو رفع ملف)", type: "image", required: false },
       { key: "url", label: "رابط البث (m3u8) أو رابط قناة يوتيوب", type: "text", required: true },
       { key: "type", label: "نوع صيغة البث", type: "select", options: ["m3u8", "youtube", "other"], value: "m3u8", required: true },
-      { key: "order", label: "ترتيب الظهور في قائمة البث", type: "number", value: 0, required: true },
-      { key: "isActive", label: "تفعيل بث هذه القناة مباشرة", type: "checkbox", value: true }
+      { key: "order", label: "ترتيب الظهور في قائمة البث (أولوية العرض)", type: "number", value: 0, required: true },
+      { key: "isActive", label: "تفعيل بث هذه القناة مباشرة في التطبيق", type: "checkbox", value: true }
     ], async (vals) => {
       await addDoc(collection(state.db, "streams"), vals);
     });
@@ -1349,7 +1426,12 @@ async function mountStreamsPane() {
       const initialText = isLiveActive ? "متاح ومباشر" : "معطل";
       const initialSubtext = isLiveActive ? "جاري الفحص..." : "غير نشط";
 
+      const channelLogo = docData.imageUrl || docData.logoUrl || "../assets/images/watania-channel-logo-unified.png";
+
       tr.innerHTML = `
+        <td class="text-center">
+          <img src="${escapeAttr(channelLogo)}" alt="${escapeAttr(docData.title || '')}" class="w-10 h-10 rounded-xl object-cover border border-brand-border/80 shadow bg-slate-900 mx-auto" onerror="this.src='../assets/images/watania-channel-logo-unified.png'; this.onerror=null;">
+        </td>
         <td class="font-bold text-white text-sm">
           <div class="flex items-center gap-2">
             <span>${typeIcon}</span>
@@ -1475,6 +1557,7 @@ async function mountStreamsPane() {
       tr.querySelector(".edit-btn").onclick = () => {
         openModal("تعديل قناة البث (HLS / YouTube)", [
           { key: "title", label: "اسم القناة (مثال: البث الرسمي أو يوتيوب)", type: "text", value: docData.title, required: true },
+          { key: "imageUrl", label: "شعار / صورة مصغرة للقناة", type: "image", value: docData.imageUrl || docData.logoUrl || "", required: false },
           { key: "url", label: "رابط البث (m3u8) أو رابط قناة يوتيوب", type: "text", value: docData.url, required: true },
           { key: "type", label: "نوع صيغة البث", type: "select", options: ["m3u8", "youtube", "other"], value: docData.type, required: true },
           { key: "order", label: "ترتيب الظهور", type: "number", value: docData.order, required: true },
@@ -2162,22 +2245,24 @@ async function mountSocialPane() {
       <div class="flex items-center justify-between border-b border-brand-border/60 pb-4 mb-4">
         <div>
           <h2 class="text-lg font-black text-white">📱 شبكات التواصل الاجتماعي الرسمية للوطنية TV</h2>
-          <p class="text-xs text-slate-400">إدارة الروابط للوصول السهل لقنوات يوتيوب، فيسبوك، تلكرام وتيك توك من شاشة التواصل بالتطبيق</p>
+          <p class="text-xs text-slate-400">إدارة الروابط والشعارات الرسمية لقنوات يوتيوب، فيسبوك، تيليجرام، تيك توك، واتساب وإنستغرام</p>
         </div>
-        <button class="btn-primary text-xs py-2" id="addSocBtn">➕ إضافة منصة تواصل</button>
-        <button class="btn-ghost text-xs py-2" onclick="exportCollection('social','التواصل')">📥 تصدير</button>
+        <div class="flex gap-2">
+          <button class="btn-primary text-xs py-2" id="addSocBtn">➕ إضافة منصة تواصل</button>
+          <button class="btn-ghost text-xs py-2" onclick="exportCollection('social','التواصل')">📥 تصدير</button>
+        </div>
       </div>
       
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead>
             <tr>
-              <th class="text-center w-12">الرمز</th>
+              <th class="text-center w-14">الأيقونة / الشعار</th>
               <th class="text-right">اسم الشبكة</th>
               <th class="text-right">العنوان المعروض</th>
               <th class="text-left">الرابط المباشر</th>
               <th class="text-right">الوصف</th>
-              <th class="text-center">اللون المميز</th>
+              <th class="text-center">اللون</th>
               <th class="text-center">الترتيب</th>
               <th class="text-center">حالة العرض</th>
               <th class="text-left">التحكم</th>
@@ -2194,13 +2279,12 @@ async function mountSocialPane() {
   $("#addSocBtn").onclick = () => {
     openModal("إضافة قناة/حساب تواصل اجتماعي جديد", [
       { key: "platform", label: "اسم المنصة وشبكة التواصل", type: "select", options: ["Facebook", "YouTube", "Instagram", "TikTok", "Telegram", "X (Twitter)", "WhatsApp", "أخرى"], value: "Facebook", required: true },
-      { key: "name", label: "الاسم المعروض (مثال: حسابنا الرسمي على إنستغرام)", type: "text", required: true },
+      { key: "name", label: "الاسم المعروض (مثال: حسابنا الرسمي على فيسبوك)", type: "text", required: true },
+      { key: "imageUrl", label: "شعار / صورة مخصصة للمنصة (رابط أو رفع ملف)", type: "image", required: false },
       { key: "url", label: "رابط الحساب أو القناة الكامل (https://)", type: "text", required: true },
       { key: "description", label: "وصف موجز للمحتوى المنشور على المنصة", type: "text", required: false },
-      { key: "logoUrl", label: "رابط شعار المنصة (اختياري)", type: "text", required: false },
-      { key: "emoji", label: "رمز تعبيري مميز (Emoji)", type: "text", value: "", required: false },
       { key: "color", label: "رمز لون التلوين المميز (مثال: #1877F2 للفيسبوك)", type: "text", value: "#1877F2", required: true },
-      { key: "order", label: "ترتيب الظهور", type: "number", value: 0, required: true },
+      { key: "order", label: "ترتيب الظهور (الأولوية)", type: "number", value: 0, required: true },
       { key: "isActive", label: "عرض الحساب في التطبيق حالاً", type: "checkbox", value: true }
     ], async (vals) => {
       await addDoc(collection(state.db, "social"), vals);
@@ -2218,8 +2302,13 @@ async function mountSocialPane() {
     docs.forEach(docData => {
       const tr = el("tr");
       const colorHex = docData.color || "#1877F2";
+      const customImg = (docData.imageUrl || docData.logoUrl || "").trim();
+      const iconHtml = customImg 
+        ? `<img src="${escapeAttr(customImg)}" class="w-9 h-9 rounded-xl object-cover border border-white/20 shadow mx-auto bg-slate-900" onerror="this.outerHTML=getSocialPlatformIconHtml('${escapeAttr(docData.platform || '')}', '${escapeAttr(colorHex)}')">`
+        : getSocialPlatformIconHtml(docData.platform, colorHex);
+
       tr.innerHTML = `
-        <td class="text-2xl text-center">${escapeHtml(docData.emoji ?? "📱")}</td>
+        <td class="text-center">${iconHtml}</td>
         <td><span class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-0.5 text-xs text-slate-100 font-bold">${escapeHtml(docData.platform)}</span></td>
         <td class="font-bold text-white text-sm">${escapeHtml(docData.name)}</td>
         <td class="url-cell text-xs font-mono"><a href="${escapeAttr(docData.url)}" target="_blank" class="hover:underline font-bold" style="color: ${colorHex}">🔗 فتح الرابط</a></td>
@@ -2248,10 +2337,9 @@ async function mountSocialPane() {
         openModal("تعديل حساب التواصل", [
           { key: "platform", label: "اسم المنصة", type: "select", options: ["Facebook", "YouTube", "Instagram", "TikTok", "Telegram", "X (Twitter)", "WhatsApp", "أخرى"], value: docData.platform || "Facebook", required: true },
           { key: "name", label: "الاسم المعروض في التطبيق", type: "text", value: docData.name, required: true },
+          { key: "imageUrl", label: "شعار / صورة مخصصة للمنصة (رابط أو رفع ملف)", type: "image", value: docData.imageUrl || docData.logoUrl || "", required: false },
           { key: "url", label: "رابط المنصة المباشر", type: "text", value: docData.url, required: true },
           { key: "description", label: "الوصف الموجز للمحتوى", type: "text", value: docData.description, required: false },
-          { key: "logoUrl", label: "رابط شعار المنصة (اختياري)", type: "text", value: docData.logoUrl, required: false },
-          { key: "emoji", label: "الرمز التعبيري الاحتياطي", type: "text", value: docData.emoji, required: false },
           { key: "color", label: "رمز اللون المميز", type: "text", value: docData.color, required: true },
           { key: "order", label: "ترتيب الظهور", type: "number", value: docData.order, required: true },
           { key: "isActive", label: "تفعيل وعرض الحساب", type: "checkbox", value: docData.isActive }

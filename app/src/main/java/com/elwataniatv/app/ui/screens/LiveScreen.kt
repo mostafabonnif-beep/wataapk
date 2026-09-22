@@ -1471,7 +1471,7 @@ private fun BroadcastChannelCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Channel Emblem Box
+            // Channel Emblem Box / Real Channel Logo
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -1479,12 +1479,25 @@ private fun BroadcastChannelCard(
                     .background(emblemBrush),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = emblemIcon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(19.dp)
-                )
+                var isImageError by remember(item.logoUrl) { mutableStateOf(false) }
+                if (item.logoUrl.isNotBlank() && !isImageError) {
+                    AsyncImage(
+                        model = item.logoUrl,
+                        contentDescription = streamTitle,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(10.dp)),
+                        onError = { isImageError = true }
+                    )
+                } else {
+                    Icon(
+                        imageVector = emblemIcon,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
             }
 
             // Channel Titles and Status
